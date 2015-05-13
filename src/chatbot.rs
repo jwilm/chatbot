@@ -1,15 +1,19 @@
 use adapter::ChatAdapter;
+use handler::MessageHandler;
 
 pub struct Chatbot {
     name: String,
-    adapters: Vec<Box<ChatAdapter>>
+    adapters: Vec<Box<ChatAdapter>>,
+    #[allow(dead_code)]
+    handlers: Vec<Box<MessageHandler>>
 }
 
 impl Chatbot {
     pub fn new() -> Chatbot {
         Chatbot {
             name: "computer".to_owned(),
-            adapters: Vec::new()
+            adapters: Vec::new(),
+            handlers: Vec::new()
         }
     }
 
