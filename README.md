@@ -29,8 +29,8 @@ fn main() {
     let mut bot = Chatbot::new();
 
     // Add some connections. I guess this serves IRC and Slack
-    let irc_adapter = Irc::from_config("/path/to/irc/config");
-    let slack_adapter = Slack::from_config("/path/to/slack/config");
+    let irc_adapter = Irc::from_config("/path/to/irc/config").unwrap();
+    let slack_adapter = Slack::from_config("/path/to/slack/config").unwrap();
 
     bot.add_adapter(irc_adapter);
     bot.add_adapter(slack_adapter);
