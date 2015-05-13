@@ -1,0 +1,6 @@
+[package]
+name = "computer"
+version = "0.0.1"
+authors = ["Joe Wilm <jdwilm@gmail.com>"]
+license = "MIT"
+description = "LCARS chat bot"
