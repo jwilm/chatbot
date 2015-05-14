@@ -1,6 +1,6 @@
 use adapter::ChatAdapter;
 use handler::MessageHandler;
-use std::thread;
+use std::collections::HashMap;
 use std::sync::mpsc::Select;
 
 pub struct Chatbot {
@@ -23,34 +23,50 @@ impl Chatbot {
     }
 
     pub fn add_adapter<T: ChatAdapter + 'static>(&mut self, adapter: Box<T>) {
+        println!("Adding adapter {}", adapter.get_name());
         self.adapters.push(adapter)
     }
 
     pub fn add_handler<T: MessageHandler + 'static>(&mut self, handler: Box<T>) {
+        println!("Adding handler {}", handler.get_name());
         self.handlers.push(handler)
     }
 
     pub fn run(&self) {
 
         let select = Select::new();
-        let handles = HashMap::new();
+        // Use two maps here. One maps adapter names to channel ports, the other
+        // maps handle ids to adapter names.
+        let mut handles = HashMap::new();
+        let mut channels = HashMap::new();
 
-        self.adapters.map(|&adapter| {
-            let (send, recv) = *adapter.process_events();
-            let handle = select.handle(&recv);
+        // TODO this could be cleaned up if more information could be stored on
+        // the adapter.
+        println!("Chatbot: starting {} adapters", self.adapters.len());
+        for adapter in &self.adapters {
+            println!("Chatbot: starting adapter {}", adapter.get_name());
+            // store ports in channels
+            channels.insert(adapter.get_name(), adapter.process_events());
+            // get ref to ports
+            let &(ref send, ref recv) = channels.get(adapter.get_name()).unwrap();
+            // set up select handle
+            let mut handle = select.handle(recv);
             unsafe { handle.add() };
-            handles.insert(handle.id(), (send, recv));
-        });
+            // map handle to adapter
+            handles.insert(handle.id(), adapter.get_name());
+        };
 
+        println!("Chatbot: entering main loop");
         loop {
+            println!("Chatbot: select");
             let id = select.wait();
-            let (send, recv) = handles.get(id);
+            println!("Chatbot: done waiting");
+            let &(ref sender, ref receiver) = channels.get(handles.get(&id).unwrap()).unwrap();
 
-            match handle.recv().unwrap() {
-                _ => panic!("someone forgot to write this part of the program")
+            match receiver.recv().unwrap() {
+                _ => break
             }
         }
-
         println!("Chatbot shutting down");
     }
 }

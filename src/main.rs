@@ -1,8 +1,8 @@
-extern crate computer;
+extern crate chatbot;
 
-use computer::Chatbot;
-use computer::adapter::CliAdapter;
-use computer::handler::EchoHandler;
+use chatbot::Chatbot;
+use chatbot::adapter::CliAdapter;
+use chatbot::handler::EchoHandler;
 
 fn main() {
     let mut bot = Chatbot::new();

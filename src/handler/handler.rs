@@ -21,11 +21,15 @@ impl OutgoingMessage {
             response: response
         }
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.response.as_bytes()
+    }
 }
 
 impl IncomingMessage {
-    pub fn new(from_adapter: String, server: String, channel: String, user: String,
-               message: String) -> IncomingMessage {
+    pub fn new(from_adapter: String, server: Option<String>, channel: Option<String>,
+               user: Option<String>, message: String) -> IncomingMessage {
         IncomingMessage {
             from_adapter: from_adapter,
             server: server,

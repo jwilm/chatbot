@@ -1,5 +1,5 @@
-mod handler;
-mod echo;
+pub mod handler;
+pub mod echo;
 
 pub use self::handler::MessageHandler;
 pub use self::handler::IncomingMessage;

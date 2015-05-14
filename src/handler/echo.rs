@@ -15,7 +15,7 @@ impl MessageHandler for EchoHandler {
         "echo"
     }
 
-    fn on_message<'a>(&'a self, message: &'a IncomingMessage<'a>) -> Option<OutgoingMessage> {
-        Some(OutgoingMessage::new(message, message.get_contents().to_owned()))
+    fn on_message(&self, message: &IncomingMessage) -> Option<OutgoingMessage> {
+        Some(OutgoingMessage::new(message.get_contents().to_owned()))
     }
 }
