@@ -1,5 +1,7 @@
 use adapter::ChatAdapter;
 use handler::MessageHandler;
+use std::thread;
+use std::sync::mpsc::Select;
 
 pub struct Chatbot {
     name: String,
@@ -26,6 +28,30 @@ impl Chatbot {
 
     pub fn add_handler<T: MessageHandler + 'static>(&mut self, handler: Box<T>) {
         self.handlers.push(handler)
+    }
+
+    pub fn run(&self) {
+
+        let select = Select::new();
+        let handles = HashMap::new();
+
+        self.adapters.map(|&adapter| {
+            let (send, recv) = *adapter.process_events();
+            let handle = select.handle(&recv);
+            unsafe { handle.add() };
+            handles.insert(handle.id(), (send, recv));
+        });
+
+        loop {
+            let id = select.wait();
+            let (send, recv) = handles.get(id);
+
+            match handle.recv().unwrap() {
+                _ => panic!("someone forgot to write this part of the program")
+            }
+        }
+
+        println!("Chatbot shutting down");
     }
 }
 

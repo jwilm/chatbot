@@ -1,33 +1,31 @@
 pub trait MessageHandler {
     fn get_name(&self) -> &str;
-    fn on_message<'a>(&'a self, payload: &'a IncomingMessage<'a>) -> Option<OutgoingMessage>;
+    fn on_message(&self, payload: &IncomingMessage) -> Option<OutgoingMessage>;
 }
 
-pub struct IncomingMessage<'a> {
-    from_adapter: &'a str,
-    server: &'a str,
-    channel: &'a str,
-    user: &'a str,
-    message: String
+pub struct IncomingMessage {
+    message: String,
+    from_adapter: String,
+    server: Option<String>,
+    channel: Option<String>,
+    user: Option<String>,
 }
 
-pub struct OutgoingMessage<'a> {
-    incoming: &'a IncomingMessage<'a>,
+pub struct OutgoingMessage {
     response: String
 }
 
-impl<'a> OutgoingMessage<'a> {
-    pub fn new(incoming: &'a IncomingMessage, response: String) -> OutgoingMessage<'a> {
+impl OutgoingMessage {
+    pub fn new(response: String) -> OutgoingMessage {
         OutgoingMessage {
-            incoming: incoming,
             response: response
         }
     }
 }
 
-impl<'a> IncomingMessage<'a> {
-    pub fn new(from_adapter: &'a str, server: &'a str, channel: &'a str, user: &'a str,
-               message: String) -> IncomingMessage<'a> {
+impl IncomingMessage {
+    pub fn new(from_adapter: String, server: String, channel: String, user: String,
+               message: String) -> IncomingMessage {
         IncomingMessage {
             from_adapter: from_adapter,
             server: server,
