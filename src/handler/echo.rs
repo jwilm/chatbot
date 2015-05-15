@@ -1,6 +1,6 @@
 use handler::MessageHandler;
-use handler::IncomingMessage;
-use handler::OutgoingMessage;
+use message::IncomingMessage;
+use message::OutgoingMessage;
 
 pub struct EchoHandler;
 

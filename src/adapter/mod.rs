@@ -1,6 +1,19 @@
-pub mod adapter;
-pub mod cli;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 
-pub use self::adapter::ChatAdapter;
-pub use self::adapter::AdapterMsg;
+use message::IncomingMessage;
+use message::OutgoingMessage;
+
+pub mod cli;
 pub use self::cli::CliAdapter;
+
+pub enum AdapterMsg {
+    Outgoing(OutgoingMessage),
+    Stop
+}
+
+pub trait ChatAdapter {
+    fn get_name(&self) -> &str;
+    fn process_events(&self) -> Receiver<IncomingMessage>;
+}
+

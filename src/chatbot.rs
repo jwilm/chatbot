@@ -2,6 +2,10 @@ use adapter::ChatAdapter;
 use handler::MessageHandler;
 use std::collections::HashMap;
 use std::sync::mpsc::Select;
+use std::sync::mpsc::Receiver;
+use message::IncomingMessage;
+use message::OutgoingMessage;
+use adapter::AdapterMsg;
 
 pub struct Chatbot {
     name: String,
@@ -34,40 +38,43 @@ impl Chatbot {
 
     pub fn run(&self) {
 
-        let select = Select::new();
-        // Use two maps here. One maps adapter names to channel ports, the other
-        // maps handle ids to adapter names.
-        let mut handles = HashMap::new();
-        let mut channels = HashMap::new();
 
         // TODO this could be cleaned up if more information could be stored on
         // the adapter.
         println!("Chatbot: starting {} adapters", self.adapters.len());
-        for adapter in &self.adapters {
-            println!("Chatbot: starting adapter {}", adapter.get_name());
-            // store ports in channels
-            channels.insert(adapter.get_name(), adapter.process_events());
-            // get ref to ports
-            let &(ref send, ref recv) = channels.get(adapter.get_name()).unwrap();
-            // set up select handle
-            let mut handle = select.handle(recv);
-            unsafe { handle.add() };
-            // map handle to adapter
-            handles.insert(handle.id(), adapter.get_name());
-        };
+
+        let sel = Select::new();
+
+        let receivers = self.adapters.iter().map(|adapter| {
+            adapter.process_events()
+        }).collect::<Vec<_>>();
+
+        let mut handles = HashMap::new();
+        for rx in &receivers {
+            let mut handle = sel.handle(&rx);
+            let id = handle.id();
+            handles.insert(id, handle);
+            let mut h = handles.get_mut(&id).unwrap();
+            unsafe { (*h).add() };
+        }
+
+        println!("Have {} receivers", receivers.len());
 
         println!("Chatbot: entering main loop");
         loop {
-            println!("Chatbot: select");
-            let id = select.wait();
-            println!("Chatbot: done waiting");
-            let &(ref sender, ref receiver) = channels.get(handles.get(&id).unwrap()).unwrap();
+            let id = sel.wait();
+            let handle = handles.get_mut(&id).unwrap();
 
-            match receiver.recv().unwrap() {
+            match handle.recv() {
+                Ok(incoming) => {
+                    let msg = OutgoingMessage::new(incoming.get_contents().to_owned());
+                    incoming.reply(AdapterMsg::Outgoing(msg));
+                },
                 _ => break
             }
         }
         println!("Chatbot shutting down");
+        // TODO there's a crash when this falls through
     }
 }
 

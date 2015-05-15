@@ -1,7 +1,11 @@
-pub mod handler;
 pub mod echo;
-
-pub use self::handler::MessageHandler;
-pub use self::handler::IncomingMessage;
-pub use self::handler::OutgoingMessage;
 pub use self::echo::EchoHandler;
+
+use message::IncomingMessage;
+use message::OutgoingMessage;
+
+pub trait MessageHandler {
+    fn get_name(&self) -> &str;
+    fn on_message(&self, payload: &IncomingMessage) -> Option<OutgoingMessage>;
+}
+

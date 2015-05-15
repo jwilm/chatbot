@@ -1,7 +1,6 @@
-pub trait MessageHandler {
-    fn get_name(&self) -> &str;
-    fn on_message(&self, payload: &IncomingMessage) -> Option<OutgoingMessage>;
-}
+use std::sync::mpsc::Sender;
+
+use adapter::AdapterMsg;
 
 pub struct IncomingMessage {
     message: String,
@@ -9,6 +8,7 @@ pub struct IncomingMessage {
     server: Option<String>,
     channel: Option<String>,
     user: Option<String>,
+    tx: Sender<AdapterMsg>
 }
 
 pub struct OutgoingMessage {
@@ -29,18 +29,24 @@ impl OutgoingMessage {
 
 impl IncomingMessage {
     pub fn new(from_adapter: String, server: Option<String>, channel: Option<String>,
-               user: Option<String>, message: String) -> IncomingMessage {
+               user: Option<String>, message: String,
+               sender: Sender<AdapterMsg>) -> IncomingMessage {
         IncomingMessage {
             from_adapter: from_adapter,
             server: server,
             channel: channel,
             user: user,
-            message: message
+            message: message,
+            tx: sender
         }
     }
 
     pub fn get_contents(&self) -> &str {
         self.message.as_ref()
+    }
+
+    pub fn reply(&self, msg: AdapterMsg) {
+        self.tx.send(msg);
     }
 }
 

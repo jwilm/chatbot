@@ -6,8 +6,8 @@ use std::thread;
 use std::io;
 use std::io::Write;
 
-use handler::IncomingMessage;
-use handler::OutgoingMessage;
+use message::IncomingMessage;
+use message::OutgoingMessage;
 use adapter::AdapterMsg;
 use adapter::ChatAdapter;
 
@@ -28,7 +28,7 @@ impl ChatAdapter for CliAdapter {
         self.name
     }
 
-    fn process_events(&self) -> (Sender<AdapterMsg>, Receiver<IncomingMessage>) {
+    fn process_events(&self) -> Receiver<IncomingMessage> {
         println!("CliAdapter: process_events");
         // hmm.. there doesn't appear to be any way to select on stdin. Use a thread
         // until a better solution presents itself.
@@ -70,12 +70,13 @@ impl ChatAdapter for CliAdapter {
                 } else if id == incoming.id() {
                     println!("CliAdapter: notifying chatbot");
                     let msg = rx_stdin.recv().unwrap();
-                    tx_incoming.send(IncomingMessage::new(name.clone(), None, None, None, msg));
+                    tx_incoming.send(IncomingMessage::new(name.clone(), None, None, None, msg,
+                                                          tx_outgoing.clone()));
                 }
             }
         });
 
-        (tx_outgoing, rx_incoming)
+        rx_incoming
     }
 }
 
