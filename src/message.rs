@@ -71,18 +71,6 @@ impl IncomingMessage {
         }
     }
 
-    /// from_str exists for testing purposes only. This function will likely
-    /// disappear in the future as providing a broken
-    /// `::std::sync::mpsc::Sender`
-    /// isn't particularly helpful.
-    #[cfg(test)]
-    pub fn from_str(message: &str) -> IncomingMessage {
-        use std::sync::mpsc::channel;
-        let (tx, _) = channel();
-        IncomingMessage::new("test".to_owned(), None, None, None, message.to_owned(), tx)
-    }
-
-    /// Get the message
     pub fn get_contents(&self) -> &str {
         self.message.as_ref()
     }

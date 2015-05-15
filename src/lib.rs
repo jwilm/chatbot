@@ -47,6 +47,12 @@
 //! ```
 //!
 
+#![feature(plugin)]
+#![plugin(regex_macros)]
+extern crate regex;
+extern crate hyper;
+extern crate rustc_serialize;
+
 pub mod chatbot;
 pub mod adapter;
 pub mod handler;

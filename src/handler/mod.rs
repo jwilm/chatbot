@@ -5,6 +5,9 @@ use std::fmt;
 mod echo;
 pub use self::echo::EchoHandler;
 
+mod githubissue;
+pub use self::githubissue::GithubIssueLinker;
+
 use message::IncomingMessage;
 use message::AdapterMsg;
 

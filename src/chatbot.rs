@@ -70,7 +70,7 @@ impl Chatbot {
             for handler in &self.handlers {
                 if let Err(e) = handler.handle(&msg) {
                     // TODO check error variant and release adapters as needed.
-                    println!("{}", e);
+                    println!("Error in handler.handle: {:?}", e);
                     break;
                 }
             }

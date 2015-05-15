@@ -74,11 +74,14 @@ impl ChatAdapter for CliAdapter {
                 let id = select.wait();
                 if id == outgoing.id() {
                     match rx_outgoing.recv().unwrap() {
-                        AdapterMsg::Outgoing(msg) => io::stdout().write(msg.as_bytes()).unwrap(),
+                        AdapterMsg::Outgoing(msg) => {
+                            io::stdout().write(msg.as_bytes()).unwrap();
+                            io::stdout().write(b"\n").unwrap();
+                            io::stdout().flush().unwrap();
+                        },
                         _ => break
                     };
                 } else if id == incoming.id() {
-                    println!("CliAdapter: notifying chatbot");
                     let bytes = rx_stdin.recv().unwrap();
                     let msg = IncomingMessage::new(name.to_owned(), None, None, None, bytes,
                         tx_outgoing.to_owned());
