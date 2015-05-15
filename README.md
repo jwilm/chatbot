@@ -1,27 +1,28 @@
-computer
-========
+chatbot
+=======
 
 **NOT READY TO USE**
 
-Tea, Earl Grey, Hot.
-
-Your very own LCARS in the form of a chat bot. There's nothing workable yet, but
-the plan is to provide adapters for slack and IRC out of the box.
+An extensible chatbot written in rust
 
 ## Usage
 
 The construction is inspired by Hubot's extensibility. It does require that you
-write a touch of code to kick things off since Rust is a compiled language and
-everything that goes along with that.
+write your own `main()` since we cannot just load scripts dynamically.
 
 ```rust
 
+extern crate chatbot;
+
 use std::env;
 
-use computer::Chatbot;
-use computer::adapter::SlackAdapter;
-use computer::adapter::IrcAdapter;
+use chatbot::Chatbot;
+use chatbot::adapter::SlackAdapter; // TODO
+use chatbot::adapter::IrcAdapter; // TODO
 
+use chatbot::handlers::EchoHandler;
+
+// Add your own handlers
 use custom::handlers;
 
 fn main() {
@@ -34,6 +35,9 @@ fn main() {
 
     bot.add_adapter(irc_adapter);
     bot.add_adapter(slack_adapter);
+
+    // Add some built in handlers
+    bot.add_handler(Box::new(EchoHandler::new()));
 
     // Include our custom handlers. I think when I'm done writing this, I'll
     // figure out how to hook it up to a coffee delivery service.
