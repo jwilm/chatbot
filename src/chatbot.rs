@@ -32,7 +32,7 @@ impl Chatbot {
     }
 
     pub fn add_handler<T: MessageHandler + 'static>(&mut self, handler: Box<T>) {
-        println!("Adding handler {}", handler.get_name());
+        println!("Adding handler {}", handler.name());
         self.handlers.push(handler)
     }
 
@@ -65,12 +65,12 @@ impl Chatbot {
             let id = sel.wait();
             let handle = handles.get_mut(&id).unwrap();
 
-            match handle.recv() {
-                Ok(incoming) => {
-                    let msg = OutgoingMessage::new(incoming.get_contents().to_owned());
-                    incoming.reply(AdapterMsg::Outgoing(msg));
-                },
-                _ => break
+            if let Ok(msg) = handle.recv() {
+                for handler in &self.handlers {
+                    handler.handle(&msg);
+                }
+            } else {
+                break;
             }
         }
         println!("Chatbot shutting down");

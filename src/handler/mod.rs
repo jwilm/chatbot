@@ -5,7 +5,7 @@ use message::IncomingMessage;
 use message::OutgoingMessage;
 
 pub trait MessageHandler {
-    fn get_name(&self) -> &str;
-    fn on_message(&self, payload: &IncomingMessage) -> Option<OutgoingMessage>;
+    fn name(&self) -> &str;
+    fn handle(&self, incoming: &IncomingMessage);
 }
 
