@@ -2,10 +2,6 @@ use adapter::ChatAdapter;
 use handler::MessageHandler;
 use std::collections::HashMap;
 use std::sync::mpsc::Select;
-use std::sync::mpsc::Receiver;
-use message::IncomingMessage;
-use message::OutgoingMessage;
-use adapter::AdapterMsg;
 
 pub struct Chatbot {
     name: String,
@@ -51,7 +47,7 @@ impl Chatbot {
 
         let mut handles = HashMap::new();
         for rx in &receivers {
-            let mut handle = sel.handle(&rx);
+            let handle = sel.handle(&rx);
             let id = handle.id();
             handles.insert(id, handle);
             let mut h = handles.get_mut(&id).unwrap();
@@ -61,19 +57,25 @@ impl Chatbot {
         println!("Have {} receivers", receivers.len());
 
         println!("Chatbot: entering main loop");
+
         loop {
             let id = sel.wait();
             let handle = handles.get_mut(&id).unwrap();
 
-            if let Ok(msg) = handle.recv() {
-                for handler in &self.handlers {
-                    handler.handle(&msg);
+            let msg = match handle.recv() {
+                Ok(msg) => msg,
+                Err(e) => panic!("Chatbot main channel error {}", e)
+            };
+
+            for handler in &self.handlers {
+                if let Err(e) = handler.handle(&msg) {
+                    // TODO check error variant and release adapters as needed.
+                    println!("{}", e);
+                    break;
                 }
-            } else {
-                break;
             }
         }
-        println!("Chatbot shutting down");
+
         // TODO there's a crash when this falls through
     }
 }

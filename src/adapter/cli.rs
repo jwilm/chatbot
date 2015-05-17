@@ -1,5 +1,4 @@
 use std::sync::mpsc::Select;
-use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 use std::thread;
@@ -7,51 +6,59 @@ use std::io;
 use std::io::Write;
 
 use message::IncomingMessage;
-use message::OutgoingMessage;
-use adapter::AdapterMsg;
+use message::AdapterMsg;
+
 use adapter::ChatAdapter;
 
-pub struct CliAdapter {
-    name: &'static str
-}
+/// The CliAdapter reads lines from stdin and dispatches them as IncomingMessages to the chatbot.
+/// Replies are printed to stdout. There is currently no extra configuration available to the
+/// CliAdapter.
+pub struct CliAdapter;
 
 impl CliAdapter {
+    /// create a new CliAdapter
     pub fn new() -> CliAdapter {
-        CliAdapter {
-            name: "cli"
-        }
+        CliAdapter
     }
 }
 
 impl ChatAdapter for CliAdapter {
+    /// name of CliAdapter
     fn get_name(&self) -> &str {
-        self.name
+        "cli"
     }
 
+    /// The CliAdapter uses two threads to 1) receive input from stdin and 2) listen for messages
+    /// coming from the main thread. This implementation may be horribly inefficient.
     fn process_events(&self) -> Receiver<IncomingMessage> {
         println!("CliAdapter: process_events");
         // hmm.. there doesn't appear to be any way to select on stdin. Use a thread
         // until a better solution presents itself.
         let (tx_stdin, rx_stdin) = channel();
         thread::Builder::new().name("Chatbot CLI Reader".to_owned()).spawn(move || {
+
             loop {
-
                 let mut line = String::new();
-                let len = io::stdin().read_line(&mut line).unwrap();
-
-                if len == 0 {
-                    break;
-                }
-
-                tx_stdin.send(line);
+                match io::stdin().read_line(&mut line) {
+                    Ok(len) => {
+                        if len == 0 {
+                            break;
+                        }
+                        tx_stdin.send(line).unwrap();
+                    },
+                    Err(e) => {
+                        println!("{:?}", e);
+                        break;
+                    }
+                };
             }
 
-            println!("CliAdapter: broke out of reading loop");
-        });
+            println!("CliAdapter: shutting down");
+        }).ok().expect("failed to create stdio reader");
 
         let (tx_incoming, rx_incoming) = channel();
         let (tx_outgoing, rx_outgoing) = channel();
-        let name = self.name.to_owned();
+        let name = self.get_name().to_owned();
 
         thread::Builder::new().name("Chatbot CLI".to_owned()).spawn(move || {
             let select = Select::new();
@@ -69,12 +76,13 @@ impl ChatAdapter for CliAdapter {
                     };
                 } else if id == incoming.id() {
                     println!("CliAdapter: notifying chatbot");
-                    let msg = rx_stdin.recv().unwrap();
-                    tx_incoming.send(IncomingMessage::new(name.clone(), None, None, None, msg,
-                                                          tx_outgoing.clone()));
+                    let bytes = rx_stdin.recv().unwrap();
+                    let msg = IncomingMessage::new(name.to_owned(), None, None, None, bytes,
+                        tx_outgoing.to_owned());
+                    tx_incoming.send(msg).unwrap();
                 }
             }
-        });
+        }).ok().expect("failed to create stdio <-> chatbot proxy");
 
         rx_incoming
     }

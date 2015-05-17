@@ -1,8 +1,9 @@
 use handler::MessageHandler;
+use handler::HandlerResult;
 use message::IncomingMessage;
-use message::OutgoingMessage;
-use adapter::AdapterMsg;
 
+/// A standard echo handler. It handles every incoming message by replying with
+/// a copy of its contents.
 pub struct EchoHandler;
 
 impl EchoHandler {
@@ -16,8 +17,7 @@ impl MessageHandler for EchoHandler {
         "echo"
     }
 
-    fn handle(&self, incoming: &IncomingMessage) {
-        let msg = OutgoingMessage::new(incoming.get_contents().to_owned());
-        incoming.reply(AdapterMsg::Outgoing(msg));
+    fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
+        Ok(try!(incoming.reply(incoming.get_contents().to_owned())))
     }
 }
