@@ -5,6 +5,8 @@ chatbot
 
 An extensible chatbot written in rust
 
+[![Circle CI](https://circleci.com/gh/jwilm/chatbot.svg?style=svg)](https://circleci.com/gh/jwilm/chatbot)
+
 ## Usage
 
 The construction is inspired by Hubot's extensibility. It does require that you
