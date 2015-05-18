@@ -1,6 +1,11 @@
 [package]
 name = "chatbot"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Joe Wilm <jdwilm@gmail.com>"]
 license = "MIT"
 description = "An extensible chatbot"
+
+[[bin]]
+doc = false
+name = "chatbot"
+path = "src/main.rs"

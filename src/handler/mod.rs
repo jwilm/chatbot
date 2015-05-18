@@ -62,9 +62,14 @@ pub type HandlerResult = Result<(), HandlerError>;
 /// A simple echo handler might look something like the following:
 ///
 /// ```rust
+/// use chatbot::handler::MessageHandler;
+/// use chatbot::handler::HandlerResult;
+/// use chatbot::message::IncomingMessage;
+///
 /// struct EchoHandler;
+///
 /// impl EchoHandler {
-///     pub fn new() -> EchoHandler { EchoHandler }
+///     fn new() -> EchoHandler { EchoHandler }
 /// }
 ///
 /// impl MessageHandler for EchoHandler {
@@ -72,8 +77,9 @@ pub type HandlerResult = Result<(), HandlerError>;
 ///         "echo"
 ///     }
 ///
-///     fn handle(&self, incoming: &IncomingMessage) -> HandlerError {
-///         try!(incoming.reply(incoming.get_contents()));
+///     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
+///         let response = incoming.get_contents().to_owned();
+///         Ok(try!(incoming.reply(response)))
 ///     }
 /// }
 /// ```
@@ -81,9 +87,11 @@ pub type HandlerResult = Result<(), HandlerError>;
 /// Then attach it to an instance of Chatbot.
 ///
 /// ```rust
-/// let bot = Chatbot::new();
+/// # use chatbot::chatbot::Chatbot;
+/// # use chatbot::handler::EchoHandler;
+/// let mut bot = Chatbot::new();
 ///
-/// bot.add_adapter(Box::new(EchoHandler::new()));
+/// bot.add_handler(Box::new(EchoHandler::new()));
 /// ```
 ///
 pub trait MessageHandler {
