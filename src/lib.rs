@@ -9,6 +9,8 @@
 //! all adapters, see
 //! [implementations](adapter/trait.ChatAdapter.html#implementors).
 //!
+//! ## Handlers and Adapters
+//!
 //! At its core are the ideas of handlers and adapters. An adapter
 //! (implementation of the [`ChatAdapter`](adapter/trait.ChatAdapter.html)
 //! trait) enables the push and pull of information from a service like IRC,
@@ -21,10 +23,12 @@
 //! whether it is interested in the message. This is likely to be changed in the
 //! near future to simplify implementation of the handlers.
 //!
+//! ## Chatbot
+//!
 //! Chatbot is the type which bridges adapters and handlers. Any program which
 //! uses chatbot will need to minimally create a Chatbot, add an adapter, add a
-//! handler, and call Chatbot [`run`](struct.Chatbot.html#method.run). For
-//! example, setting up a simple echo server that responds to CLI input:
+//! handler, and call Chatbot [`run`](chatbot/struct.Chatbot.html#method.run).
+//! For example, setting up a simple echo server that responds to CLI input:
 //!
 //! # Examples
 //!
