@@ -11,3 +11,8 @@ deployment:
     branch: master
     commands:
       - sh mkdoc.sh
+
+general:
+  branches:
+    ignore:
+      - gh-pages
