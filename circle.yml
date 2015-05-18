@@ -1,0 +1,7 @@
+dependencies:
+  override:
+    - curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- --channel=nightly -y
+
+test:
+  override:
+    - cargo test
