@@ -52,10 +52,12 @@ impl From<SendError<AdapterMsg>> for HandlerError {
 pub type HandlerResult = Result<(), HandlerError>;
 
 /// Implementing a MessageHandler enables responding to IncomingMessages. There
-/// are currently very few requirements to creating a handler. The `handle`
-/// function receives `IncomingMessage`s. The implementer is responsible for
-/// testing whether it's interested in replying. Optionally call `reply` on the
-/// IncomingMessage to send a response.
+/// are currently very few requirements to creating a handler. The
+/// [`handle`](#method.handle) function receives
+/// [`IncomingMessage`](message/struct.IncomingMessage.html)s.  The implementer
+/// is responsible for testing whether it's interested in replying. Optionally
+/// call [`reply`](message/struct.IncomingMessage.html#method.reply) on the
+/// [`IncomingMessage`](message/struct.IncomingMessage.html) to send a response.
 ///
 /// # Example
 ///
@@ -84,7 +86,7 @@ pub type HandlerResult = Result<(), HandlerError>;
 /// }
 /// ```
 ///
-/// Then attach it to an instance of Chatbot.
+/// Then attach it to an instance of [`Chatbot`](chatbot/struct.Chatbot.html).
 ///
 /// ```rust
 /// # use chatbot::chatbot::Chatbot;

@@ -26,8 +26,9 @@ impl OutgoingMessage {
         }
     }
 
-    /// Return a reference to the IncomingMessage that this message is in
-    /// response to.
+    /// Return a reference to the
+    /// [`IncomingMessage`](message/struct.IncomingMessage.html) that this
+    /// message is in response to.
     pub fn get_incoming<'a>(&'a self) -> &'a IncomingMessage {
         &self.incoming
     }
@@ -42,9 +43,10 @@ impl OutgoingMessage {
 /// properties on this struct exist to help adapters route any `OutgoingMessage`
 /// back to where the IncomingMessage originated.
 ///
-/// Types implementing the MessageHandler trait should use IncomingMessage.reply
-/// to respond. It is up to the ChatAdapter to decide what `reply` means in the
-/// context of the service it provides.
+/// Types implementing the [`MessageHandler`](handler/trait.MessageHandler.html)
+/// trait should use IncomingMessage.reply to respond. It is up to the
+/// [`ChatAdapter`](adapter/trait.ChatAdapter.html) to decide what
+/// [`reply`](#method.reply) means in the context of the service it provides.
 #[derive(Clone)]
 pub struct IncomingMessage {
     message: String,
@@ -70,7 +72,8 @@ impl IncomingMessage {
     }
 
     /// from_str exists for testing purposes only. This function will likely
-    /// disappear in the future as providing a broken std::sync::mpsc::Sender
+    /// disappear in the future as providing a broken
+    /// `::std::sync::mpsc::Sender`
     /// isn't particularly helpful.
     #[cfg(test)]
     pub fn from_str(message: &str) -> IncomingMessage {

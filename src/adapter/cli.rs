@@ -10,9 +10,9 @@ use message::AdapterMsg;
 
 use adapter::ChatAdapter;
 
-/// The CliAdapter reads lines from stdin and dispatches them as IncomingMessages to the chatbot.
-/// Replies are printed to stdout. There is currently no extra configuration available to the
-/// CliAdapter.
+/// The CliAdapter reads lines from stdin and dispatches them as
+/// IncomingMessages to the chatbot.  Replies are printed to stdout. There is
+/// currently no extra configuration available to the CliAdapter.
 pub struct CliAdapter;
 
 impl CliAdapter {
@@ -28,8 +28,11 @@ impl ChatAdapter for CliAdapter {
         "cli"
     }
 
-    /// The CliAdapter uses two threads to 1) receive input from stdin and 2) listen for messages
-    /// coming from the main thread. This implementation may be horribly inefficient.
+    /// The CliAdapter uses two threads to
+    ///
+    /// 1.  receive input from stdin and
+    /// 2.  listen for messages coming from the main thread. This implementation
+    ///     may be horribly inefficient.
     fn process_events(&self) -> Receiver<IncomingMessage> {
         println!("CliAdapter: process_events");
         // hmm.. there doesn't appear to be any way to select on stdin. Use a thread
