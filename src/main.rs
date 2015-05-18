@@ -4,6 +4,7 @@ use chatbot::Chatbot;
 use chatbot::adapter::CliAdapter;
 use chatbot::handler::EchoHandler;
 
+#[allow(dead_code)]
 fn main() {
     let mut bot = Chatbot::new();
 
