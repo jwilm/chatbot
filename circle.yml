@@ -5,3 +5,9 @@ dependencies:
 test:
   override:
     - cargo test
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - sh mkdoc.sh
