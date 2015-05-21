@@ -61,7 +61,9 @@ stabilize before that's possible.
 
 Contributions are very welcome on this project. To get started, fork the repo
 and clone it locally. You should be able to just do `cargo run` (assuming you're
-on the nightlies) and get a working echo handler on the command line.
+on the nightlies) and get a working echo handler on the command line. If you
+want to run the test program using the Slack adapter, do
+`cargo run -- --adapter slack`.
 
 [service adapters]: http://chatbot.rs/chatbot/adapter/trait.ChatAdapter.html#implementors
 [message handlers]: http://chatbot.rs/chatbot/handler/trait.MessageHandler.html#implementors
