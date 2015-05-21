@@ -52,6 +52,7 @@
 extern crate regex;
 extern crate hyper;
 extern crate rustc_serialize;
+extern crate slack;
 
 pub mod chatbot;
 pub mod adapter;

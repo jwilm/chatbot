@@ -37,6 +37,11 @@ impl OutgoingMessage {
     pub fn as_bytes(&self) -> &[u8] {
         self.response.as_bytes()
     }
+
+    /// Get ref to response str
+    pub fn as_ref(&self) -> &str {
+        self.response.as_ref()
+    }
 }
 
 /// adapters convert strings they receive into an IncomingMessage. The
@@ -68,6 +73,13 @@ impl IncomingMessage {
             user: user,
             message: message,
             tx: sender
+        }
+    }
+
+    pub fn channel(&self) -> Option<&str> {
+        match self.channel {
+            Some(ref channel) => Some(channel.as_ref()),
+            None => None
         }
     }
 
