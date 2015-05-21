@@ -1,52 +1,70 @@
 chatbot
 =======
 
-**NOT READY TO USE**
-
-An extensible chatbot written in rust
+An extensible chatbot written in rust.
 
 [![Circle CI](https://circleci.com/gh/jwilm/chatbot.svg?style=svg)](https://circleci.com/gh/jwilm/chatbot)
 
-## Usage
+## About
 
-The construction is inspired by Hubot's extensibility. It does require that you
-write your own `main()` since we cannot just load scripts dynamically.
+The construction is inspired by Hubot's extensibility. There is an ever-growing
+list of [service adapters][] and [message handlers][] as part of the project.
+
+To get started, you might make a `main` function that looks like the following.
+Once you get that running, check out the [documentation][] to add more packaged
+[message handlers][] or write your own.
 
 ```rust
-
 extern crate chatbot;
 
-use std::env;
-
 use chatbot::Chatbot;
-use chatbot::adapter::SlackAdapter; // TODO
-use chatbot::adapter::IrcAdapter; // TODO
-
-use chatbot::handlers::EchoHandler;
-
-// Add your own handlers
-use custom::handlers;
+use chatbot::adapter::CliAdapter;
+use chatbot::handler::EchoHandler;
 
 fn main() {
-    // Create an instance of the bot
     let mut bot = Chatbot::new();
 
-    // Add some connections. I guess this serves IRC and Slack
-    let irc_adapter = Irc::from_config("/path/to/irc/config").unwrap();
-    let slack_adapter = Slack::from_config("/path/to/slack/config").unwrap();
-
-    bot.add_adapter(irc_adapter);
-    bot.add_adapter(slack_adapter);
-
-    // Add some built in handlers
+    bot.add_adapter(Box::new(CliAdapter::new()));
     bot.add_handler(Box::new(EchoHandler::new()));
 
-    // Include our custom handlers. I think when I'm done writing this, I'll
-    // figure out how to hook it up to a coffee delivery service.
-    bot.add_handler(custom::handlers::BlueBottleOrder::new());
-    bot.add_handler(custom::handlers::BadPuns::new());
-
-    // Run the bot. This blocks until the bot is asked to shutdown.
     bot.run();
 }
 ```
+
+## Plans
+
+My immediate priority list looks something like the following.
+
+1. ~~Implement basic slack adapter~~
+2. Clean up slack adapter implementation
+3. Get off of rust nightlies. The project was started using the Select API
+   manually, but it is marked as unstable. [mio][] may be the correct answer for
+   this.
+3. Add a `RobotBrain` trait a `RedisBrain` implementation, and some sort of
+   structured text (json/toml/yaml? tbd). The brain will be passed into to the
+   handlers' `handle` method.
+4. Add more message handlers.
+    - GitHub issue poster
+    - trout slap
+    - countdowns
+    - simple key-value store for remembering things in chat
+    - others
+5. [IRC Chat Adapter](https://github.com/jwilm/chatbot/issues/1)
+
+There are some other miscellaneous items in the [issue tracker][] as well.
+
+I can imagine a time when the handlers should get moved out into their own
+repository so their development can continue independently. The API needs to
+stabilize before that's possible.
+
+## Contributing
+
+Contributions are very welcome on this project. To get started, fork the repo
+and clone it locally. You should be able to just do `cargo run` (assuming you're
+on the nightlies) and get a working echo handler on the command line.
+
+[service adapters]: http://chatbot.rs/chatbot/adapter/trait.ChatAdapter.html#implementors
+[message handlers]: http://chatbot.rs/chatbot/handler/trait.MessageHandler.html#implementors
+[documentation]: http://chatbot.rs/chatbot/
+[issue tracker]: https://github.com/jwilm/chatbot/issues
+[mio]: https://github.com/carllerche/mio
