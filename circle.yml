@@ -1,6 +1,7 @@
 dependencies:
   override:
     - curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- --channel=nightly -y
+    - cargo build
   cache_directories:
     - "~/.cargo"
     - "target"
