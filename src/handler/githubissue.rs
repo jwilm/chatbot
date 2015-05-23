@@ -6,7 +6,6 @@ use hyper::Client;
 use hyper::header::UserAgent;
 use hyper::status::StatusCode;
 use regex::Captures;
-use regex::Regex;
 use rustc_serialize::json::Json;
 
 use handler::MessageHandler;
