@@ -8,6 +8,9 @@ pub use self::echo::EchoHandler;
 mod githubissue;
 pub use self::githubissue::GithubIssueLinker;
 
+mod ping;
+pub use self::ping::PingHandler;
+
 use message::IncomingMessage;
 use message::AdapterMsg;
 

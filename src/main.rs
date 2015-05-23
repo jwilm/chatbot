@@ -6,7 +6,7 @@ use std::env;
 use chatbot::Chatbot;
 use chatbot::adapter::CliAdapter;
 use chatbot::adapter::SlackAdapter;
-use chatbot::handler::EchoHandler;
+use chatbot::handler::PingHandler;
 use chatbot::handler::GithubIssueLinker;
 
 use getopts::Options;
@@ -36,7 +36,7 @@ fn main() {
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
 
-    bot.add_handler(Box::new(EchoHandler::new()));
+    bot.add_handler(Box::new(PingHandler::new()));
     bot.add_handler(Box::new(GithubIssueLinker::new()));
 
     bot.run();
