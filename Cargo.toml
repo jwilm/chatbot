@@ -4,6 +4,10 @@ version = "0.0.3"
 authors = ["Joe Wilm <jdwilm@gmail.com>"]
 license = "MIT"
 description = "An extensible chatbot"
+documentation = "https://chatbot.rs/chatbot/"
+repository = "https://github.com/jwilm/chatbot"
+keywords = ["chat", "bot", "extensible"]
+readme = "README.md"
 
 [[bin]]
 doc = false
@@ -12,7 +16,6 @@ path = "src/main.rs"
 
 [dependencies]
 regex = "0.1.30"
-regex_macros = "*"
 hyper = "0.5.0"
 rustc-serialize = "0.3.14"
 slack = "0.6.0"

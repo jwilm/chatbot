@@ -1,4 +1,3 @@
-#![feature(std_misc)]
 #![deny(unused_must_use)]
 
 //!
@@ -47,12 +46,14 @@
 //! ```
 //!
 
-#![feature(plugin)]
-#![plugin(regex_macros)]
 extern crate regex;
 extern crate hyper;
 extern crate rustc_serialize;
 extern crate slack;
+
+macro_rules! regex(
+    ($s:expr) => (regex::Regex::new($s).unwrap());
+);
 
 pub mod chatbot;
 pub mod adapter;

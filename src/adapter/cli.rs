@@ -34,11 +34,13 @@ impl ChatAdapter for CliAdapter {
     ///     may be horribly inefficient.
     fn process_events(&self) -> Receiver<IncomingMessage> {
         println!("CliAdapter: process_events");
-        // hmm.. there doesn't appear to be any way to select on stdin. Use a thread
-        // until a better solution presents itself.
-        let (tx_stdin, rx_stdin) = channel();
-        thread::Builder::new().name("Chatbot CLI Reader".to_owned()).spawn(move || {
 
+        let (tx_incoming, rx_incoming) = channel();
+        let (tx_outgoing, rx_outgoing) = channel();
+        let name = self.get_name().to_owned();
+
+        // Read from stdin and send messages to the main loop
+        thread::Builder::new().name("Chatbot CLI Reader".to_owned()).spawn(move || {
             loop {
                 let mut line = String::new();
                 match io::stdin().read_line(&mut line) {
@@ -46,7 +48,9 @@ impl ChatAdapter for CliAdapter {
                         if len == 0 {
                             break;
                         }
-                        tx_stdin.send(line).unwrap();
+                        let msg = IncomingMessage::new(name.to_owned(), None, None, None, line,
+                            tx_outgoing.to_owned());
+                        tx_incoming.send(msg).unwrap();
                     },
                     Err(e) => {
                         println!("{:?}", e);
@@ -58,30 +62,18 @@ impl ChatAdapter for CliAdapter {
             println!("CliAdapter: shutting down");
         }).ok().expect("failed to create stdio reader");
 
-        let (tx_incoming, rx_incoming) = channel();
-        let (tx_outgoing, rx_outgoing) = channel();
-        let name = self.get_name().to_owned();
-
+        // process messages from the main loop
         thread::Builder::new().name("Chatbot CLI".to_owned()).spawn(move || {
             loop {
-                select!(
-                    adapter_msg = rx_outgoing.recv() => {
-                        match adapter_msg.unwrap() {
-                            AdapterMsg::Outgoing(msg) => {
-                                io::stdout().write(msg.as_bytes()).unwrap();
-                                io::stdout().write(b"\n").unwrap();
-                                io::stdout().flush().unwrap();
-                            },
-                            _ => break
-                        }
+                // TODO don't blindly unwrap
+                match rx_outgoing.recv().unwrap() {
+                    AdapterMsg::Outgoing(msg) => {
+                        io::stdout().write(msg.as_bytes()).unwrap();
+                        io::stdout().write(b"\n").unwrap();
+                        io::stdout().flush().unwrap();
                     },
-                    cli_result = rx_stdin.recv() => {
-                        let bytes = cli_result.unwrap();
-                        let msg = IncomingMessage::new(name.to_owned(), None, None, None, bytes,
-                            tx_outgoing.to_owned());
-                        tx_incoming.send(msg).unwrap();
-                    }
-                )
+                    _ => break
+                }
             }
         }).ok().expect("failed to create stdio <-> chatbot proxy");
 
