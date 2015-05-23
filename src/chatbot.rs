@@ -1,7 +1,5 @@
 use adapter::ChatAdapter;
 use handler::MessageHandler;
-use std::collections::HashMap;
-use std::sync::mpsc::Select;
 
 pub struct Chatbot {
     name: String,
@@ -24,6 +22,9 @@ impl Chatbot {
 
     pub fn add_adapter<T: ChatAdapter + 'static>(&mut self, adapter: Box<T>) {
         println!("Adding adapter {}", adapter.get_name());
+        // Temporarily limit the number of concurrent adapters to 1 until
+        // switching to mio or similar
+        assert_eq!(self.adapters.len(), 0);
         self.adapters.push(adapter)
     }
 
@@ -34,40 +35,22 @@ impl Chatbot {
 
     pub fn run(&self) {
 
-
-        // TODO this could be cleaned up if more information could be stored on
-        // the adapter.
         println!("Chatbot: starting {} adapters", self.adapters.len());
 
-        let sel = Select::new();
+        let ref adapter = self.adapters[0];
+        let adapter_rx = adapter.process_events();
 
-        let receivers = self.adapters.iter().map(|adapter| {
-            adapter.process_events()
-        }).collect::<Vec<_>>();
-
-        let mut handles = HashMap::new();
-        for rx in &receivers {
-            let handle = sel.handle(&rx);
-            let id = handle.id();
-            handles.insert(id, handle);
-            let mut h = handles.get_mut(&id).unwrap();
-            unsafe { (*h).add() };
-        }
-
-        println!("Have {} receivers", receivers.len());
-
+        println!("Have {} receivers", self.adapters.len());
         println!("Chatbot: entering main loop");
 
         loop {
-            let id = sel.wait();
-            let handle = handles.get_mut(&id).unwrap();
-
-            let msg = match handle.recv() {
+            // Get message from adapter
+            let msg = match adapter_rx.recv() {
                 Ok(msg) => msg,
-                Err(e) => panic!("Chatbot main channel error {}", e)
+                Err(_) => break
             };
 
-            println!("Got message: {}", msg.get_contents());
+            // Distribute to handlers
             for handler in &self.handlers {
                 if let Err(e) = handler.handle(&msg) {
                     // TODO check error variant and release adapters as needed.
@@ -77,7 +60,7 @@ impl Chatbot {
             }
         }
 
-        // TODO there's a crash when this falls through
+        println!("chatbot shutting down");
     }
 }
 
