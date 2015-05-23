@@ -1,4 +1,3 @@
-use std::sync::mpsc::Select;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 use std::thread;
@@ -64,29 +63,25 @@ impl ChatAdapter for CliAdapter {
         let name = self.get_name().to_owned();
 
         thread::Builder::new().name("Chatbot CLI".to_owned()).spawn(move || {
-            let select = Select::new();
-            let mut outgoing = select.handle(&rx_outgoing);
-            unsafe { outgoing.add() };
-            let mut incoming = select.handle(&rx_stdin);
-            unsafe { incoming.add() };
-
             loop {
-                let id = select.wait();
-                if id == outgoing.id() {
-                    match rx_outgoing.recv().unwrap() {
-                        AdapterMsg::Outgoing(msg) => {
-                            io::stdout().write(msg.as_bytes()).unwrap();
-                            io::stdout().write(b"\n").unwrap();
-                            io::stdout().flush().unwrap();
-                        },
-                        _ => break
-                    };
-                } else if id == incoming.id() {
-                    let bytes = rx_stdin.recv().unwrap();
-                    let msg = IncomingMessage::new(name.to_owned(), None, None, None, bytes,
-                        tx_outgoing.to_owned());
-                    tx_incoming.send(msg).unwrap();
-                }
+                select!(
+                    adapter_msg = rx_outgoing.recv() => {
+                        match adapter_msg.unwrap() {
+                            AdapterMsg::Outgoing(msg) => {
+                                io::stdout().write(msg.as_bytes()).unwrap();
+                                io::stdout().write(b"\n").unwrap();
+                                io::stdout().flush().unwrap();
+                            },
+                            _ => break
+                        }
+                    },
+                    cli_result = rx_stdin.recv() => {
+                        let bytes = cli_result.unwrap();
+                        let msg = IncomingMessage::new(name.to_owned(), None, None, None, bytes,
+                            tx_outgoing.to_owned());
+                        tx_incoming.send(msg).unwrap();
+                    }
+                )
             }
         }).ok().expect("failed to create stdio <-> chatbot proxy");
 
