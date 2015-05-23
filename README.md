@@ -35,21 +35,18 @@ fn main() {
 
 My immediate priority list looks something like the following.
 
-1. ~~Implement basic slack adapter~~
-2. Clean up slack adapter implementation
-3. Get off of rust nightlies. The project was started using the Select API
-   manually, but it is marked as unstable. [mio][] may be the correct answer for
-   this.
-3. Add a `RobotBrain` trait a `RedisBrain` implementation, and some sort of
+1. Clean up slack adapter implementation
+2. Add a `RobotBrain` trait a `RedisBrain` implementation, and some sort of
    structured text (json/toml/yaml? tbd). The brain will be passed into to the
    handlers' `handle` method.
-4. Add more message handlers.
+3. Add more message handlers.
     - GitHub issue poster
     - trout slap
     - countdowns
     - simple key-value store for remembering things in chat
+    - ping
     - others
-5. [IRC Chat Adapter](https://github.com/jwilm/chatbot/issues/1)
+4. [IRC Chat Adapter](https://github.com/jwilm/chatbot/issues/1)
 
 There are some other miscellaneous items in the [issue tracker][] as well.
 
