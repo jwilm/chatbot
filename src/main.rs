@@ -4,9 +4,9 @@ extern crate getopts;
 use std::env;
 
 use chatbot::Chatbot;
+use chatbot::handler::BasicResponseHandler;
 use chatbot::adapter::CliAdapter;
 use chatbot::adapter::SlackAdapter;
-use chatbot::handler::PingHandler;
 use chatbot::handler::GithubIssueLinker;
 
 use getopts::Options;
@@ -36,7 +36,11 @@ fn main() {
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
 
-    bot.add_handler(Box::new(PingHandler::new()));
+    let ping = BasicResponseHandler::new("PingHandler", r"ping", |_| {
+        "pong".to_owned()
+    });
+
+    bot.add_handler(Box::new(ping));
     bot.add_handler(Box::new(GithubIssueLinker::new()));
 
     bot.run();

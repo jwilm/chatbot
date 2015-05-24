@@ -5,14 +5,8 @@ use std::sync::mpsc::SendError;
 use std::fmt;
 use regex::Regex;
 
-mod echo;
-pub use self::echo::EchoHandler;
-
 mod githubissue;
 pub use self::githubissue::GithubIssueLinker;
-
-mod ping;
-pub use self::ping::PingHandler;
 
 use message::IncomingMessage;
 use message::AdapterMsg;
@@ -112,28 +106,101 @@ pub type HandlerResult = Result<(), HandlerError>;
 /// # }
 /// ```
 ///
-/// Then attach it to an instance of [`Chatbot`](chatbot/struct.Chatbot.html).
-///
-/// ```rust
-/// # use chatbot::chatbot::Chatbot;
-/// # use chatbot::handler::EchoHandler;
-/// let mut bot = Chatbot::new();
-///
-/// bot.add_handler(Box::new(EchoHandler::new()));
-/// ```
-///
 pub trait MessageHandler {
     fn name(&self) -> &str;
     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult;
-
     fn re(&self) -> &Regex;
 
+    /// Uses re() to test whether the handler should process this message.
     fn can_handle(&self, msg: &str) -> bool {
         self.re().is_match(msg)
     }
 
+    /// Uses re() to get capturing groups from a message
     fn get_captures<'a>(&self, msg: &'a str) -> Option<regex::Captures<'a>> {
         self.re().captures(msg)
     }
 }
 
+
+/// A basic response handler
+///
+/// Provide an re matcher, a name, and a lambda to send simple responses.
+pub struct BasicResponseHandler {
+    name: String,
+    trigger: Regex,
+    responder: Box<Fn(&str) -> String>
+}
+
+impl BasicResponseHandler {
+    pub fn new<F>(name: &str, trigger: &str, responder: F) -> BasicResponseHandler
+        where F: Fn(&str) -> String  + 'static {
+
+        BasicResponseHandler {
+            name: name.to_owned(),
+            responder: Box::new(responder),
+            trigger: regex!(trigger)
+        }
+    }
+}
+
+impl MessageHandler for BasicResponseHandler {
+    fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+
+    fn re(&self) -> &Regex {
+        &self.trigger
+    }
+
+    fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
+        let ref make_response = self.responder;
+        try!(incoming.reply(make_response(incoming.get_contents())));
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::mpsc::channel;
+    use handler::BasicResponseHandler;
+    use handler::MessageHandler;
+    use message::IncomingMessage;
+    use message::AdapterMsg;
+
+    #[test]
+    fn test_basic_response_echo() {
+        let handler = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
+            msg.to_owned()
+        });
+
+        let test_msg = "echo this message";
+        assert!(handler.can_handle(test_msg));
+        let (tx, rx) = channel();
+        let msg = IncomingMessage::new(handler.name().to_owned(),
+            None, None, None, test_msg.to_owned(), tx);
+        handler.handle(&msg).unwrap();
+        match rx.recv().unwrap() {
+            AdapterMsg::Outgoing(out) => assert_eq!(out.as_ref(), test_msg),
+            _ => unreachable!()
+        }
+    }
+
+    #[test]
+    fn test_basic_responder_ping() {
+        let handler = BasicResponseHandler::new("PingHandler", r"ping", |_| {
+            "pong".to_owned()
+        });
+
+        assert!(handler.can_handle("ping"));
+        let (tx, rx) = channel();
+        let msg = IncomingMessage::new(handler.name().to_owned(),
+            None, None, None, "ping".to_owned(), tx);
+        handler.handle(&msg).unwrap();
+        match rx.recv().unwrap() {
+            AdapterMsg::Outgoing(out) => assert_eq!(out.as_ref(), "pong"),
+            _ => unreachable!()
+        }
+    }
+}

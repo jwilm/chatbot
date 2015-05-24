@@ -35,12 +35,16 @@
 //! # // bot.run() loops indefinitely
 //! use chatbot::Chatbot;
 //! use chatbot::adapter::CliAdapter;
-//! use chatbot::handler::EchoHandler;
+//! use chatbot::handler::BasicResponseHandler;
 //!
 //! let mut bot = Chatbot::new();
 //!
+//! let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
+//!     msg.to_owned()
+//! });
+//!
+//! bot.add_handler(Box::new(echo));
 //! bot.add_adapter(Box::new(CliAdapter::new()));
-//! bot.add_handler(Box::new(EchoHandler::new()));
 //!
 //! bot.run();
 //! ```
