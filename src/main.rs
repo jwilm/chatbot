@@ -36,11 +36,22 @@ fn main() {
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
 
-    let ping = BasicResponseHandler::new("PingHandler", r"ping", |_| {
-        "pong".to_owned()
+    let ping = BasicResponseHandler::new("PingHandler", r"ping", |_, _| {
+        Some("pong".to_owned())
+    });
+
+    let robot_name = "Mr. T";
+    let trout = BasicResponseHandler::new("TroutSlap", r"slap (?P<user>.+)", move |matches, _| {
+        match matches.name("user") {
+            Some(user) => {
+                Some(format!("{} slaps {} around a bit with a large trout", robot_name, user))
+            },
+            None => None
+        }
     });
 
     bot.add_handler(ping);
+    bot.add_handler(trout);
     bot.add_handler(GithubIssueLinker::new());
 
     bot.run();

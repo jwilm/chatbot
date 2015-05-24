@@ -39,8 +39,8 @@
 //!
 //! let mut bot = Chatbot::new();
 //!
-//! let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
-//!     msg.to_owned()
+//! let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |_, msg| {
+//!     Some(msg.to_owned())
 //! });
 //!
 //! bot.add_handler(echo);

@@ -56,10 +56,17 @@ impl Chatbot {
 
             // Distribute to handlers
             for handler in &self.handlers {
-                if let Err(e) = handler.handle(&msg) {
-                    // TODO check error variant and release adapters as needed.
-                    println!("Error in handler.handle: {:?}", e);
-                    break;
+                if handler.can_handle(msg.get_contents()) {
+                    match handler.handle(&msg) {
+                        Err(e) => {
+                            println!("Error in handler `{}`", handler.name());
+                            println!("{:?}", e);
+                            println!("The incoming message was {}", msg.get_contents());
+
+                            // TODO remove handler?
+                        },
+                        _ => ()
+                    }
                 }
             }
         }
@@ -90,8 +97,8 @@ mod tests {
     #[test]
     fn test_chatbot_add_handler() {
         let mut bot = Chatbot::new();
-        let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
-            msg.to_owned()
+        let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |_, msg| {
+            Some(msg.to_owned())
         });
         bot.add_handler(echo);
     }

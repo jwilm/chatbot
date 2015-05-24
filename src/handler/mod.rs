@@ -4,6 +4,7 @@ use std::error::Error;
 use std::sync::mpsc::SendError;
 use std::fmt;
 use regex::Regex;
+use regex::Captures;
 
 mod githubissue;
 pub use self::githubissue::GithubIssueLinker;
@@ -117,7 +118,7 @@ pub trait MessageHandler {
     }
 
     /// Uses re() to get capturing groups from a message
-    fn get_captures<'a>(&self, msg: &'a str) -> Option<regex::Captures<'a>> {
+    fn get_captures<'a>(&self, msg: &'a str) -> Option<Captures<'a>> {
         self.re().captures(msg)
     }
 }
@@ -129,12 +130,12 @@ pub trait MessageHandler {
 pub struct BasicResponseHandler {
     name: String,
     trigger: Regex,
-    responder: Box<Fn(&str) -> String>
+    responder: Box<Fn(Captures, &str) -> Option<String>>
 }
 
 impl BasicResponseHandler {
     pub fn new<F>(name: &str, trigger: &str, responder: F) -> BasicResponseHandler
-        where F: Fn(&str) -> String  + 'static {
+        where F: Fn(Captures, &str) -> Option<String>  + 'static {
 
         BasicResponseHandler {
             name: name.to_owned(),
@@ -155,7 +156,12 @@ impl MessageHandler for BasicResponseHandler {
 
     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
         let ref make_response = self.responder;
-        try!(incoming.reply(make_response(incoming.get_contents())));
+        let msg = incoming.get_contents();
+
+        match make_response(self.get_captures(msg).unwrap(), msg) {
+            Some(response) => try!(incoming.reply(response)),
+            None => ()
+        }
 
         Ok(())
     }
@@ -171,8 +177,8 @@ mod tests {
 
     #[test]
     fn test_basic_response_echo() {
-        let handler = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
-            msg.to_owned()
+        let handler = BasicResponseHandler::new("EchoHandler", r"echo", |_, msg| {
+            Some(msg.to_owned())
         });
 
         let test_msg = "echo this message";
@@ -189,8 +195,8 @@ mod tests {
 
     #[test]
     fn test_basic_responder_ping() {
-        let handler = BasicResponseHandler::new("PingHandler", r"ping", |_| {
-            "pong".to_owned()
+        let handler = BasicResponseHandler::new("PingHandler", r"ping", |_, _| {
+            Some("pong".to_owned())
         });
 
         assert!(handler.can_handle("ping"));
