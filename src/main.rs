@@ -31,8 +31,8 @@ fn main() {
 
     // Add adapter based on command line argument
     match adapter_name.as_ref() {
-        "slack" => bot.add_adapter(Box::new(SlackAdapter::new())),
-        "cli" => bot.add_adapter(Box::new(CliAdapter::new())),
+        "slack" => bot.add_adapter(SlackAdapter::new()),
+        "cli" => bot.add_adapter(CliAdapter::new()),
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
 
@@ -40,8 +40,8 @@ fn main() {
         "pong".to_owned()
     });
 
-    bot.add_handler(Box::new(ping));
-    bot.add_handler(Box::new(GithubIssueLinker::new()));
+    bot.add_handler(ping);
+    bot.add_handler(GithubIssueLinker::new());
 
     bot.run();
 }

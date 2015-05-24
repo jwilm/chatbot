@@ -43,8 +43,8 @@
 //!     msg.to_owned()
 //! });
 //!
-//! bot.add_handler(Box::new(echo));
-//! bot.add_adapter(Box::new(CliAdapter::new()));
+//! bot.add_handler(echo);
+//! bot.add_adapter(CliAdapter::new());
 //!
 //! bot.run();
 //! ```

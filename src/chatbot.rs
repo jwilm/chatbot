@@ -20,17 +20,21 @@ impl Chatbot {
         self.name.as_ref()
     }
 
-    pub fn add_adapter<T: ChatAdapter + 'static>(&mut self, adapter: Box<T>) {
+    pub fn add_adapter<T>(&mut self, adapter: T)
+        where T: ChatAdapter + 'static
+    {
         println!("Adding adapter {}", adapter.get_name());
         // Temporarily limit the number of concurrent adapters to 1 until
         // switching to mio or similar
         assert_eq!(self.adapters.len(), 0);
-        self.adapters.push(adapter)
+        self.adapters.push(Box::new(adapter))
     }
 
-    pub fn add_handler<T: MessageHandler + 'static>(&mut self, handler: Box<T>) {
+    pub fn add_handler<T>(&mut self, handler: T)
+        where T: MessageHandler + 'static
+    {
         println!("Adding handler {}", handler.name());
-        self.handlers.push(handler)
+        self.handlers.push(Box::new(handler))
     }
 
     pub fn run(&self) {
@@ -79,7 +83,7 @@ mod tests {
     #[test]
     fn test_chatbot_add_adapter() {
         let mut bot = Chatbot::new();
-        let cli = Box::new(CliAdapter::new());
+        let cli = CliAdapter::new();
         bot.add_adapter(cli);
     }
 
@@ -89,7 +93,6 @@ mod tests {
         let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
             msg.to_owned()
         });
-        let handler = Box::new(echo);
-        bot.add_handler(handler);
+        bot.add_handler(echo);
     }
 }
