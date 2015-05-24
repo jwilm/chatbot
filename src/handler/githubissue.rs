@@ -5,7 +5,7 @@ use std::io::Read;
 use hyper::Client;
 use hyper::header::UserAgent;
 use hyper::status::StatusCode;
-use regex::Captures;
+use regex::Regex;
 use rustc_serialize::json::Json;
 
 use handler::MessageHandler;
@@ -13,27 +13,25 @@ use handler::HandlerResult;
 use message::IncomingMessage;
 
 /// Respond to github issue links with the title and hyperlink
-pub struct GithubIssueLinker;
+pub struct GithubIssueLinker {
+    regex: Regex
+}
 
 impl GithubIssueLinker {
     pub fn new() -> GithubIssueLinker {
-        GithubIssueLinker
-    }
-
-    pub fn can_handle(&self, msg: &str) -> bool {
-        let re = regex!(r"https://github.com/(?P<owner>\w|\w\w|\w[\w-]+\w)/(?P<repo>[\w_-]+)/issues/(?P<issue>\d+)");
-        re.is_match(msg)
-    }
-
-    pub fn get_captures<'a>(&self, msg: &'a str) -> Option<Captures<'a>> {
-        let re = regex!(r"https://github.com/(?P<owner>\w|\w\w|\w[\w-]+\w)/(?P<repo>[\w_-]+)/issues/(?P<issue>\d+)");
-        re.captures(msg)
+        GithubIssueLinker {
+            regex: regex!(r"https://github.com/(?P<owner>\w|\w\w|\w[\w-]+\w)/(?P<repo>[\w_-]+)/issues/(?P<issue>\d+)")
+        }
     }
 }
 
 impl MessageHandler for GithubIssueLinker {
     fn name(&self) -> &str {
         "GithubIssueLinker"
+    }
+
+    fn re(&self) -> &Regex {
+        &self.regex
     }
 
     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {

@@ -51,6 +51,7 @@ extern crate hyper;
 extern crate rustc_serialize;
 extern crate slack;
 
+#[macro_export]
 macro_rules! regex(
     ($s:expr) => (regex::Regex::new($s).unwrap());
 );

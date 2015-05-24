@@ -1,6 +1,9 @@
+extern crate regex;
+
 use std::error::Error;
 use std::sync::mpsc::SendError;
 use std::fmt;
+use regex::Regex;
 
 mod echo;
 pub use self::echo::EchoHandler;
@@ -70,14 +73,26 @@ pub type HandlerResult = Result<(), HandlerError>;
 /// A simple echo handler might look something like the following:
 ///
 /// ```rust
+/// # extern crate chatbot;
+/// # extern crate regex;
+/// # fn main() {
+///
 /// use chatbot::handler::MessageHandler;
 /// use chatbot::handler::HandlerResult;
 /// use chatbot::message::IncomingMessage;
 ///
-/// struct EchoHandler;
+/// use regex::Regex;
+///
+/// struct EchoHandler {
+///     regex: Regex
+/// }
 ///
 /// impl EchoHandler {
-///     fn new() -> EchoHandler { EchoHandler }
+///     fn new() -> EchoHandler {
+///         EchoHandler {
+///             regex: Regex::new(r".").unwrap()
+///         }
+///     }
 /// }
 ///
 /// impl MessageHandler for EchoHandler {
@@ -85,11 +100,16 @@ pub type HandlerResult = Result<(), HandlerError>;
 ///         "echo"
 ///     }
 ///
+///     fn re(&self) -> &Regex {
+///         &self.regex
+///     }
+///
 ///     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
 ///         let response = incoming.get_contents().to_owned();
 ///         Ok(try!(incoming.reply(response)))
 ///     }
 /// }
+/// # }
 /// ```
 ///
 /// Then attach it to an instance of [`Chatbot`](chatbot/struct.Chatbot.html).
@@ -105,5 +125,15 @@ pub type HandlerResult = Result<(), HandlerError>;
 pub trait MessageHandler {
     fn name(&self) -> &str;
     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult;
+
+    fn re(&self) -> &Regex;
+
+    fn can_handle(&self, msg: &str) -> bool {
+        self.re().is_match(msg)
+    }
+
+    fn get_captures<'a>(&self, msg: &'a str) -> Option<regex::Captures<'a>> {
+        self.re().captures(msg)
+    }
 }
 

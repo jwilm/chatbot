@@ -7,25 +7,25 @@ use handler::HandlerResult;
 use message::IncomingMessage;
 
 /// Respond to "ping" messages with "pong"
-pub struct PingHandler;
+pub struct PingHandler {
+    regex: Regex
+}
 
 impl PingHandler {
     pub fn new() -> PingHandler {
-        PingHandler
-    }
-
-    pub fn re(&self) -> Regex {
-        regex!(r"ping")
-    }
-
-    pub fn can_handle(&self, msg: &str) -> bool {
-        self.re().is_match(msg)
+        PingHandler {
+            regex: regex!(r"ping")
+        }
     }
 }
 
 impl MessageHandler for PingHandler {
     fn name(&self) -> &str {
         "ping"
+    }
+
+    fn re(&self) -> &Regex {
+        &self.regex
     }
 
     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
