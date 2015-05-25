@@ -142,9 +142,7 @@ impl OutgoingSlackMsg {
     fn new(id: i64, m: OutgoingMessage) -> OutgoingSlackMsg {
         OutgoingSlackMsg {
             id: id,
-            channel: m.get_incoming()
-                      .channel()
-                      .expect("missing channel").to_owned(),
+            channel: m.get_incoming().channel().expect("missing channel").to_owned(),
             msg_type: "message".to_owned(),
             text: m.as_ref().to_owned() // TODO move instead of copy
         }
