@@ -22,11 +22,18 @@ use adapter::ChatAdapter;
 /// SlackAdapter sends and receives messages from the Slack chat service. Until actualy
 /// configuration is added, the slack token should be placed in the environment variable
 /// `SLACK_BOT_TOKEN`
-pub struct SlackAdapter;
+pub struct SlackAdapter {
+    token: String
+}
 
 impl SlackAdapter {
     pub fn new() -> SlackAdapter {
-        SlackAdapter
+        SlackAdapter {
+            token: match env::var("SLACK_BOT_TOKEN") {
+                Ok(t) => t,
+                Err(_) => panic!("Failed to get SLACK_BOT_TOKEN from env")
+            }
+        }
     }
 }
 
@@ -168,15 +175,10 @@ impl ChatAdapter for SlackAdapter {
         let (tx_bot, rx_bot) = channel();
         let (tx_adapter, rx_adapter) = channel();
 
-        let token = match env::var("SLACK_BOT_TOKEN") {
-            Ok(t) => t,
-            Err(_) => panic!("Failed to get SLACK_BOT_TOKEN from env")
-        };
-
         let uid = AtomicIsize::new(0);
 
         let mut cli = slack::RtmClient::new();
-        let (client, slack_rx) = cli.login(token.as_ref()).unwrap();
+        let (client, slack_rx) = cli.login(self.token.as_ref()).unwrap();
         let slack_tx = cli.get_outs().unwrap();
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
