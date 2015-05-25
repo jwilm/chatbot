@@ -1,5 +1,6 @@
 extern crate slack;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::mpsc::Sender;
@@ -7,17 +8,17 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 use std::thread;
 
-use rustc_serialize::json::Json;
-use rustc_serialize::json;
+use rustc_serialize::json::{self, Json, ToJson};
 use rustc_serialize::json::DecoderError::MissingFieldError;
 use rustc_serialize::Decodable;
 use rustc_serialize::Decoder;
 
 use slack::Message;
 
+use adapter::ChatAdapter;
 use message::AdapterMsg;
 use message::IncomingMessage;
-use adapter::ChatAdapter;
+use message::OutgoingMessage;
 
 /// SlackAdapter sends and receives messages from the Slack chat service. Until actualy
 /// configuration is added, the slack token should be placed in the environment variable
@@ -129,6 +130,38 @@ fn string_to_slack_msg(raw: &str) -> Result<SlackMsg, json::DecoderError> {
     }
 }
 
+#[derive(Debug)]
+struct OutgoingSlackMsg {
+    id: i64,
+    channel: String,
+    msg_type: String,
+    text: String
+}
+
+impl OutgoingSlackMsg {
+    fn new(id: i64, m: OutgoingMessage) -> OutgoingSlackMsg {
+        OutgoingSlackMsg {
+            id: id,
+            channel: m.get_incoming()
+                      .channel()
+                      .expect("missing channel").to_owned(),
+            msg_type: "message".to_owned(),
+            text: m.as_ref().to_owned() // TODO move instead of copy
+        }
+    }
+}
+
+impl ToJson for OutgoingSlackMsg {
+    fn to_json(&self) -> Json {
+        let mut d = BTreeMap::new();
+        d.insert("id".to_string(), self.id.to_json());
+        d.insert("channel".to_string(), self.channel.to_json());
+        d.insert("type".to_string(), self.msg_type.to_json());
+        d.insert("text".to_string(), self.text.to_json());
+        Json::Object(d)
+    }
+}
+
 #[allow(unused_variables)]
 impl slack::MessageHandler for MyHandler {
     fn on_receive(&mut self, cli: &mut slack::RtmClient, raw: &str) {
@@ -155,18 +188,11 @@ impl slack::MessageHandler for MyHandler {
         }
     }
 
-    fn on_ping(&mut self, cli: &mut slack::RtmClient) {
-        println!("<on_ping>");
-    }
+    fn on_ping(&mut self, cli: &mut slack::RtmClient) { }
 
-    fn on_close(&mut self, cli: &mut slack::RtmClient) {
-        println!("<on_close>");
-    }
+    fn on_close(&mut self, cli: &mut slack::RtmClient) { }
 
-    fn on_connect(&mut self, cli: &mut slack::RtmClient) {
-        println!("<on_connect>");
-        // let _ = cli.send_message("#general", "bla");
-    }
+    fn on_connect(&mut self, cli: &mut slack::RtmClient) { }
 }
 
 impl ChatAdapter for SlackAdapter {
@@ -196,24 +222,16 @@ impl ChatAdapter for SlackAdapter {
                 match rx_adapter.recv() {
                     Ok(msg) => {
                         match msg {
-                            AdapterMsg::Outgoing(msg) => {
-                                let n = uid.fetch_add(1, Ordering::SeqCst);
-                                let chan = msg.get_incoming().channel().unwrap();
-                                let payload = msg.as_ref();
-                                let mut obj = json::Object::new();
-                                obj.insert("id".to_string(), Json::I64(n as i64));
-                                obj.insert("channel".to_string(), Json::String(chan.to_owned()));
-                                obj.insert("type".to_string(), Json::String("message".to_owned()));
-                                obj.insert("text".to_string(), Json::String(payload.to_owned()));
-                                let json = Json::Object(obj);
-                                let slack_msg = Message::Text(json.to_string());
-                                slack_tx.send(slack_msg).unwrap();
+                            AdapterMsg::Outgoing(m) => {
+                                let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
+                                let out = OutgoingSlackMsg::new(id, m);
+                                slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
                             }
-                            _ => println!("TODO")
+                            _ => unreachable!("No other messages being sent yet")
                         }
                     },
                     Err(e) => {
-                        println!("error receiving outgoing messages to the slack adapter: {}", e);
+                        println!("error receiving outgoing messages: {}", e);
                         break
                     }
                 }
