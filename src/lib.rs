@@ -32,14 +32,15 @@
 //! # Examples
 //!
 //! ```no_run
-//! # // bot.run() loops indefinitely
+//! # #[macro_use(handler)]
+//! # extern crate chatbot;
+//! # fn main() {
 //! use chatbot::Chatbot;
 //! use chatbot::adapter::CliAdapter;
-//! use chatbot::handler::BasicResponseHandler;
 //!
 //! let mut bot = Chatbot::new();
 //!
-//! let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |_, msg| {
+//! let echo = handler!("EchoHandler", r"echo .+", |_, msg| {
 //!     Some(msg.to_owned())
 //! });
 //!
@@ -47,6 +48,7 @@
 //! bot.add_adapter(CliAdapter::new());
 //!
 //! bot.run();
+//! # }
 //! ```
 //!
 
@@ -59,6 +61,29 @@ extern crate slack;
 macro_rules! regex(
     ($s:expr) => (regex::Regex::new($s).unwrap());
 );
+
+/// The `handler!` macro is shorthand for creating simple chat handlers. It
+/// accepts a name, a string used to build a regex for testing the incoming
+/// message and for collecting captures, and a closure which should return a
+/// `String` to be sent as the outgoing message.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use(handler)]
+/// # extern crate chatbot;
+/// # fn main() {
+/// let ping = handler!("Ping", r"ping", |_, _| Some("pong".to_owned()) );
+/// # }
+/// ```
+///
+#[macro_export]
+macro_rules! handler {
+    ( $name:expr, $rstr:expr, $lambda:expr ) => {
+        $crate::handler::BasicResponseHandler::new($name, $rstr, $lambda)
+    }
+}
+
 
 pub mod chatbot;
 pub mod adapter;

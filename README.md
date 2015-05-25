@@ -15,6 +15,7 @@ Once you get that running, check out the [documentation][] to add more packaged
 [message handlers][] or write your own.
 
 ```rust
+#[macro_use(handler)]
 extern crate chatbot;
 
 use chatbot::Chatbot;
@@ -24,12 +25,12 @@ use chatbot::handler::BasicMessageHandler;
 fn main() {
     let mut bot = Chatbot::new();
 
-    let echo = BasicResponseHandler::new("EchoHandler", r"echo .+", |msg| {
+    let echo = handler!("EchoHandler", r"echo .+", |msg| {
         msg.to_owned()
     });
 
-    bot.add_adapter(CliAdapter::new());
     bot.add_handler(echo);
+    bot.add_adapter(CliAdapter::new());
 
     bot.run();
 }
@@ -45,11 +46,8 @@ My immediate priority list looks something like the following.
    handlers' `handle` method.
 3. Add more message handlers.
     - GitHub issue poster
-    - trout slap
     - countdowns
     - simple key-value store for remembering things in chat
-    - ping
-    - others
 4. [IRC Chat Adapter](https://github.com/jwilm/chatbot/issues/1)
 
 There are some other miscellaneous items in the [issue tracker][] as well.

@@ -1,10 +1,10 @@
+#[macro_use(handler)]
 extern crate chatbot;
 extern crate getopts;
 
 use std::env;
 
 use chatbot::Chatbot;
-use chatbot::handler::BasicResponseHandler;
 use chatbot::adapter::CliAdapter;
 use chatbot::adapter::SlackAdapter;
 use chatbot::handler::GithubIssueLinker;
@@ -36,15 +36,14 @@ fn main() {
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
 
-    let ping = BasicResponseHandler::new("PingHandler", r"ping", |_, _| {
-        Some("pong".to_owned())
-    });
+    let ping = handler!("PingHandler", r"ping", |_, _| { Some("pong".to_owned()) });
 
     let robot_name = "Mr. T";
-    let trout = BasicResponseHandler::new("TroutSlap", r"slap (?P<user>.+)", move |matches, _| {
+    let trout = handler!("TroutSlap", r"slap (?P<user>.+)", move |matches, _| {
         match matches.name("user") {
             Some(user) => {
-                Some(format!("{} slaps {} around a bit with a large trout", robot_name, user))
+                Some(format!("{} slaps {} around a bit with a large trout",
+                             robot_name, user))
             },
             None => None
         }
