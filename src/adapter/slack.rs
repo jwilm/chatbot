@@ -104,6 +104,11 @@ impl Decodable for SlackMsg {
     }
 }
 
+/// Convert a JSON string to a SlackMsg
+///
+/// This methods provides additional error handling around json::decode for certain errors
+/// that cannot be handled in the Decodable implementation. Specifically, MissingFieldError
+/// where the field is "type" are actually valid messages despite missing the "type" field.
 fn string_to_slack_msg(raw: &str) -> Result<SlackMsg, json::DecoderError> {
     // Some messages arriving from the slack client don't have a type. So far I've only
     // witnessed confirmation messages arriving in this fashion. Since they go through the same
