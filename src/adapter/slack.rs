@@ -44,7 +44,7 @@ struct MyHandler {
   tx_adapter: Sender<AdapterMsg>
 }
 
-/// Data for a SlackMsg::Message
+/// Data for a Event::Message
 #[allow(dead_code)]
 struct MessageData {
     text: String,
@@ -72,75 +72,117 @@ impl MessageData {
 }
 
 /// Incoming slack messages on the websocket api
-enum SlackMsg {
+enum Event {
     /// A message was sent to a channel
-    Message(MessageData),
+    Message(Msg),
 
     /// Some other type of message arrived.
     /// [The list](https://api.slack.com/rtm) is quite extensive, and only the
     /// messages the adapter is concerned with are enumerated here.
-    Other
+    Other(json::Object)
 }
 
-impl Decodable for SlackMsg {
-    fn decode<D: Decoder>(d: &mut D) -> Result<SlackMsg, D::Error> {
-        d.read_struct("root", 0, |root| {
-            let msg_type = try!(root.read_struct_field("type", 0, |f| f.read_str() ));
+/// Event::Message sub types. Message events are the only event capable of having a sub type.
+enum Msg {
+    /// A regular text message from a user
+    Plain(MessageData),
 
-            match msg_type.as_ref() {
-                "message" => {
-                    Ok(SlackMsg::Message(MessageData {
-                        text: try!(root.read_struct_field("text", 0, |f| f.read_str())),
-                        channel: try!(root.read_struct_field("channel", 0, |f| f.read_str())),
-                        user: try!(root.read_struct_field("user", 0, |f| f.read_str())),
-                        ts: try!(root.read_struct_field("ts", 0, |f| f.read_str())),
-                        team: try!(root.read_struct_field("team", 0, |f| f.read_str())),
-                    }))
-                },
-                _ => {
-                    Ok(SlackMsg::Other)
-                }
-            }
-        })
+    /// Subtype not explicitly handled. For a complete enumeration, check
+    /// https://api.slack.com/events/message
+    Other(json::Object)
+}
+
+#[derive(Debug)]
+struct MessageDecodeError(&'static str);
+
+impl From<json::BuilderError> for MessageDecodeError {
+    fn from(err: json::BuilderError) -> MessageDecodeError {
+        MessageDecodeError("json::BuilderError")
     }
 }
 
-/// Convert a JSON string to a SlackMsg
-///
-/// This methods provides additional error handling around json::decode for certain errors
-/// that cannot be handled in the Decodable implementation. Specifically, MissingFieldError
-/// where the field is "type" are actually valid messages despite missing the "type" field.
-fn string_to_slack_msg(raw: &str) -> Result<SlackMsg, json::DecoderError> {
-    // Some messages arriving from the slack client don't have a type. So far I've only
-    // witnessed confirmation messages arriving in this fashion. Since they go through the same
-    // pipeline as content messages, the decoder should be able to handle them.
-    match json::decode::<SlackMsg>(raw) {
-        Ok(value) => Ok(value),
-        Err(e) => {
-            match e {
-                MissingFieldError(field) => {
-                    match field.as_ref() {
-                        "type" => Ok(SlackMsg::Other),
-                        _ => Err(MissingFieldError(field))
-                    }
-                },
-                _ => Err(e)
+/// Extract a &str ($key) from a json::Object ($obj)
+/// Returns an Err(MessageDecodeError) when it fails
+macro_rules! get_json_string {
+    ($obj:ident, $key:expr) => {
+        {
+            let json_str: &Json = match $obj.get($key) {
+                Some(json_str) => json_str,
+                None => return Err(MessageDecodeError("missing field"))
+            };
+
+            match json_str.as_string() {
+                Some(slice) => slice.to_owned(),
+                None => return Err(MessageDecodeError("not a string"))
             }
         }
     }
 }
 
+fn decode_msg_json(obj: json::Object, msg_type: &str) -> Result<Event, MessageDecodeError> {
+    // Messages with a `subtype` are not plain text messages.. Not interested in them for now.
+    if obj.contains_key("subtype") {
+        return Ok(Event::Message(Msg::Other(obj)))
+    }
+
+    // It's a plain message.
+    Ok(Event::Message(Msg::Plain(MessageData {
+        text: get_json_string!(obj, "text"),
+        channel: get_json_string!(obj, "channel"),
+        user: get_json_string!(obj, "user"),
+        ts: get_json_string!(obj, "ts"),
+        team: get_json_string!(obj, "team"),
+    })))
+}
+
+fn decode_json(raw: &str) -> Result<Event, MessageDecodeError> {
+    let json = try!(Json::from_str(raw));
+    let obj = match json {
+        Json::Object(obj) => obj,
+        _ => return Err(MessageDecodeError("string is not json object"))
+    };
+
+    // If the message does not have a `type`, it is a confirmation message
+    if !obj.contains_key("type") {
+        return Ok(Event::Other(obj))
+    }
+
+    let msg = match obj.get("type").expect("obj has key type but failed to get").as_string() {
+        Some(s) => s.to_owned(),
+        None => return Err(MessageDecodeError("type field is not a string"))
+    };
+
+    match msg.as_ref() {
+        // If it's a message type, try and return an Event::Message
+        "message" => decode_msg_json(obj, msg.as_ref()),
+        // Some other type we don't explicitly handle
+        _ => Ok(Event::Other(obj)),
+    }
+}
+
+/// Convert a JSON string to a Event
+///
+/// This methods provides additional error handling around json::decode for certain errors
+/// that cannot be handled in the Decodable implementation. Specifically, MissingFieldError
+/// where the field is "type" are actually valid messages despite missing the "type" field.
+fn string_to_slack_msg(raw: &str) -> Result<Event, MessageDecodeError> {
+    // Some messages arriving from the slack client don't have a type. So far I've only
+    // witnessed confirmation messages arriving in this fashion. Since they go through the same
+    // pipeline as content messages, the decoder should be able to handle them.
+    decode_json(raw)
+}
+
 #[derive(Debug)]
-struct OutgoingSlackMsg {
+struct OutgoingEvent {
     id: i64,
     channel: String,
     msg_type: String,
     text: String
 }
 
-impl OutgoingSlackMsg {
-    fn new(id: i64, m: OutgoingMessage) -> OutgoingSlackMsg {
-        OutgoingSlackMsg {
+impl OutgoingEvent {
+    fn new(id: i64, m: OutgoingMessage) -> OutgoingEvent {
+        OutgoingEvent {
             id: id,
             channel: m.get_incoming().channel().expect("missing channel").to_owned(),
             msg_type: "message".to_owned(),
@@ -149,7 +191,7 @@ impl OutgoingSlackMsg {
     }
 }
 
-impl ToJson for OutgoingSlackMsg {
+impl ToJson for OutgoingEvent {
     fn to_json(&self) -> Json {
         let mut d = BTreeMap::new();
         d.insert("id".to_string(), self.id.to_json());
@@ -169,7 +211,7 @@ impl slack::MessageHandler for MyHandler {
         match string_to_slack_msg(raw) {
             Ok(slack_msg) => {
                 match slack_msg {
-                    SlackMsg::Message(msg) => {
+                    Event::Message(Msg::Plain(msg)) => {
                         let incoming = IncomingMessage::new("SlackAdapter".to_owned(), None,
                             Some(msg.channel().to_owned()), Some(msg.user().to_owned()),
                             msg.text().to_owned(), self.tx_adapter.clone());
@@ -222,7 +264,7 @@ impl ChatAdapter for SlackAdapter {
                         match msg {
                             AdapterMsg::Outgoing(m) => {
                                 let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
-                                let out = OutgoingSlackMsg::new(id, m);
+                                let out = OutgoingEvent::new(id, m);
                                 slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
                             }
                             _ => unreachable!("No other messages being sent yet")
@@ -242,7 +284,8 @@ impl ChatAdapter for SlackAdapter {
 
 #[cfg(test)]
 mod tests {
-    use adapter::slack::SlackMsg;
+    use adapter::slack::Event;
+    use adapter::slack::Msg;
     use adapter::slack::string_to_slack_msg;
 
     #[test]
@@ -257,14 +300,14 @@ mod tests {
         let slack_msg = string_to_slack_msg(raw).unwrap();
 
         match slack_msg {
-            SlackMsg::Message(data) => {
+            Event::Message(Msg::Plain(data)) => {
                 assert_eq!(data.text(), "ping");
                 assert_eq!(data.channel(), "D04UYUAMW");
                 assert_eq!(data.user(), "U02ALMR84");
                 assert_eq!(data.ts(), "1432563914.000007");
                 assert_eq!(data.team(), "T02ALMR82");
             },
-            _ => panic!("Expected SlackMsg::Message")
+            _ => panic!("Expected Event::Message")
         }
     }
     #[test]
@@ -272,8 +315,8 @@ mod tests {
         let raw = r#"{"ok":true,"reply_to":0,"ts":"1432566639.000014","text":"pong"}"#;
 
         match string_to_slack_msg(raw).unwrap() {
-            SlackMsg::Other => (),
-            _ => panic!("expected SlackMsg::Other")
+            Event::Other(_) => (),
+            _ => panic!("expected Event::Other")
         }
     }
 
@@ -282,8 +325,61 @@ mod tests {
         let raw = r#"{"type":"not_a_slack_msg_type"}"#;
 
         match string_to_slack_msg(raw).unwrap() {
-            SlackMsg::Other => (),
-            _ => panic!("expected SlackMsg::Other")
+            Event::Other(_) => (),
+            _ => panic!("expected Event::Other")
         }
     }
+
+    #[test]
+    fn decode_message_changed() {
+        let raw = r#"{
+            "type":"message",
+            "message":{
+                "type":"message",
+                "user":"U02ALMR84",
+                "text":"arst",
+                "edited":{
+                    "user":"U02ALMR84",
+                    "ts":"1432695814.000000"
+                },
+                "ts":"1432695812.000056"
+            },
+            "subtype":"message_changed",
+            "hidden":true,
+            "channel":"D04UYUAMW",
+            "event_ts":"1432695814.616510",
+            "ts":"1432695814.000057"
+        }"#;
+
+        match string_to_slack_msg(raw).unwrap() {
+            Event::Message(Msg::Other(_)) => return,
+            _ => panic!("expected Msg::Other")
+        }
+    }
+
+    #[test]
+    fn decode_me_message() {
+        let raw = r#"{
+            "text":"is a potato",
+            "type":"message",
+            "subtype":"me_message",
+            "user":"U02ALMR84",
+            "channel":"D04UYUAMW",
+            "ts":"1432695826.000060"
+        }"#;
+    }
+
+    #[test]
+    fn decode_message_deleted() {
+        let raw = r#"{
+            "type":"message",
+            "deleted_ts":"1432695826.000060",
+            "subtype":"message_deleted",
+            "hidden":true,
+            "channel":"D04UYUAMW",
+            "event_ts":"1432695848.617155",
+            "ts":"1432695848.000061"
+        }"#;
+    }
+
 }
