@@ -1,51 +1,14 @@
-extern crate slack;
-
 use std::collections::BTreeMap;
-use std::env;
 use std::error::Error;
 use std::fmt;
-use std::sync::atomic::{AtomicIsize, Ordering};
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::channel;
-use std::thread;
 
 use rustc_serialize::json::{self, Json, ToJson};
 
-use slack::Message;
-
-use adapter::ChatAdapter;
-use message::AdapterMsg;
-use message::IncomingMessage;
 use message::OutgoingMessage;
-
-/// SlackAdapter sends and receives messages from the Slack chat service. Until actualy
-/// configuration is added, the slack token should be placed in the environment variable
-/// `SLACK_BOT_TOKEN`
-pub struct SlackAdapter {
-    token: String
-}
-
-impl SlackAdapter {
-    pub fn new() -> SlackAdapter {
-        SlackAdapter {
-            token: match env::var("SLACK_BOT_TOKEN") {
-                Ok(t) => t,
-                Err(_) => panic!("Failed to get SLACK_BOT_TOKEN from env")
-            }
-        }
-    }
-}
-
-struct MyHandler {
-  count: i64,
-  tx_bot: Sender<IncomingMessage>,
-  tx_adapter: Sender<AdapterMsg>
-}
 
 /// Data for a Event::Message
 #[allow(dead_code)]
-struct MessageData {
+pub struct MessageData {
     text: String,
     channel: String,
     user: String,
@@ -71,7 +34,7 @@ impl MessageData {
 }
 
 /// Incoming slack messages on the websocket api
-enum Event {
+pub enum Event {
     /// A message was sent to a channel
     Message(Msg),
 
@@ -82,7 +45,7 @@ enum Event {
 }
 
 /// Event::Message sub types. Message events are the only event capable of having a sub type.
-enum Msg {
+pub enum Msg {
     /// A regular text message from a user
     Plain(MessageData),
 
@@ -92,7 +55,7 @@ enum Msg {
 }
 
 #[derive(Debug)]
-enum EventDecodingError {
+pub enum EventDecodingError {
     InvalidJson(json::BuilderError),
     MissingField(String),
     WrongType(String, String),
@@ -153,7 +116,7 @@ macro_rules! get_json_string {
     }
 }
 
-fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
+pub fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
     // Messages with a `subtype` are not plain text messages.. Not interested in them for now.
     if obj.contains_key("subtype") {
         return Ok(Event::Message(Msg::Other(obj)))
@@ -169,7 +132,7 @@ fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
     })))
 }
 
-fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
+pub fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
     let json = try!(Json::from_str(raw));
     let obj = match json {
         Json::Object(obj) => obj,
@@ -199,7 +162,7 @@ fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
 /// This methods provides additional error handling around json::decode for certain errors
 /// that cannot be handled in the Decodable implementation. Specifically, MissingFieldError
 /// where the field is "type" are actually valid messages despite missing the "type" field.
-fn string_to_slack_msg(raw: &str) -> Result<Event, EventDecodingError> {
+pub fn string_to_slack_msg(raw: &str) -> Result<Event, EventDecodingError> {
     // Some messages arriving from the slack client don't have a type. So far I've only
     // witnessed confirmation messages arriving in this fashion. Since they go through the same
     // pipeline as content messages, the decoder should be able to handle them.
@@ -207,7 +170,7 @@ fn string_to_slack_msg(raw: &str) -> Result<Event, EventDecodingError> {
 }
 
 #[derive(Debug)]
-struct OutgoingEvent {
+pub struct OutgoingEvent {
     id: i64,
     channel: String,
     msg_type: String,
@@ -215,7 +178,7 @@ struct OutgoingEvent {
 }
 
 impl OutgoingEvent {
-    fn new(id: i64, m: OutgoingMessage) -> OutgoingEvent {
+    pub fn new(id: i64, m: OutgoingMessage) -> OutgoingEvent {
         OutgoingEvent {
             id: id,
             channel: m.get_incoming().channel().expect("missing channel").to_owned(),
@@ -236,91 +199,11 @@ impl ToJson for OutgoingEvent {
     }
 }
 
-#[allow(unused_variables)]
-impl slack::MessageHandler for MyHandler {
-    fn on_receive(&mut self, cli: &mut slack::RtmClient, raw: &str) {
-        println!("Received[{}]: {}", self.count, raw.to_string());
-        self.count = self.count + 1;
-
-        match string_to_slack_msg(raw) {
-            Ok(slack_msg) => {
-                match slack_msg {
-                    Event::Message(Msg::Plain(msg)) => {
-                        let incoming = IncomingMessage::new("SlackAdapter".to_owned(), None,
-                            Some(msg.channel().to_owned()), Some(msg.user().to_owned()),
-                            msg.text().to_owned(), self.tx_adapter.clone());
-
-                        self.tx_bot.send(incoming).ok().expect("Bot unable to process messages");
-                    },
-                    _ => ()
-                }
-            },
-            Err(e) => {
-                println!("error decoding slack message: {:?}", e);
-                println!("please consider reporting this to jwilm/chatbot as it is probably a bug");
-            }
-        }
-    }
-
-    fn on_ping(&mut self, cli: &mut slack::RtmClient) { }
-
-    fn on_close(&mut self, cli: &mut slack::RtmClient) { }
-
-    fn on_connect(&mut self, cli: &mut slack::RtmClient) { }
-}
-
-impl ChatAdapter for SlackAdapter {
-    /// SlackAdapter name
-    fn get_name(&self) -> &str {
-        "SlackAdapter"
-    }
-
-    fn process_events(&self) -> Receiver<IncomingMessage> {
-        println!("SlackAdapter: process_events");
-        let (tx_bot, rx_bot) = channel();
-        let (tx_adapter, rx_adapter) = channel();
-
-        let uid = AtomicIsize::new(0);
-
-        let mut cli = slack::RtmClient::new();
-        let (client, slack_rx) = cli.login(self.token.as_ref()).unwrap();
-        let slack_tx = cli.get_outs().unwrap();
-
-        thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
-            let mut handler = MyHandler{count: 0, tx_bot: tx_bot, tx_adapter: tx_adapter};
-            cli.run::<MyHandler>(&mut handler, client, slack_rx).unwrap();
-        }).ok().expect("failed to create thread for slack receiver");
-
-        thread::Builder::new().name("Chatbot Slack Sender".to_owned()).spawn(move || {
-            loop {
-                match rx_adapter.recv() {
-                    Ok(msg) => {
-                        match msg {
-                            AdapterMsg::Outgoing(m) => {
-                                let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
-                                let out = OutgoingEvent::new(id, m);
-                                slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
-                            }
-                            _ => unreachable!("No other messages being sent yet")
-                        }
-                    },
-                    Err(e) => {
-                        println!("error receiving outgoing messages: {}", e);
-                        break
-                    }
-                }
-            }
-        }).ok().expect("failed to create thread for slack sender");
-
-        rx_bot
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use adapter::slack::Event;
-    use adapter::slack::Msg;
-    use adapter::slack::string_to_slack_msg;
+    use adapter::slack::message::Event;
+    use adapter::slack::message::Msg;
+    use adapter::slack::message::string_to_slack_msg;
 
     #[test]
     fn decode_message() {
