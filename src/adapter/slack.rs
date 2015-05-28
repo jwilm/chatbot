@@ -2,6 +2,8 @@ extern crate slack;
 
 use std::collections::BTreeMap;
 use std::env;
+use std::error::Error;
+use std::fmt;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
@@ -90,33 +92,68 @@ enum Msg {
 }
 
 #[derive(Debug)]
-struct MessageDecodeError(&'static str);
+enum EventDecodingError {
+    InvalidJson(json::BuilderError),
+    MissingField(String),
+    WrongType(String, String),
+}
 
-impl From<json::BuilderError> for MessageDecodeError {
-    fn from(_: json::BuilderError) -> MessageDecodeError {
-        MessageDecodeError("json::BuilderError")
+impl Error for EventDecodingError {
+    fn description(&self) -> &str {
+        match *self {
+            EventDecodingError::InvalidJson(ref err) => err.description(),
+            EventDecodingError::MissingField(_) => "JSON property missing",
+            EventDecodingError::WrongType(_, _) => "JSON property had wrong type"
+        }
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        match *self {
+            EventDecodingError::InvalidJson(ref err) => Some(err),
+            _ => None
+        }
     }
 }
 
-/// Extract a &str ($key) from a json::Object ($obj)
-/// Returns an Err(MessageDecodeError) when it fails
-macro_rules! get_json_string {
-    ($obj:ident, $key:expr) => {
-        {
-            let json_str: &Json = match $obj.get($key) {
-                Some(json_str) => json_str,
-                None => return Err(MessageDecodeError("missing field"))
-            };
-
-            match json_str.as_string() {
-                Some(slice) => slice.to_owned(),
-                None => return Err(MessageDecodeError("not a string"))
+impl fmt::Display for EventDecodingError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            EventDecodingError::InvalidJson(ref err) => write!(f, "InvalidJson({})", err),
+            EventDecodingError::MissingField(ref field) => write!(f, "MissingField({})", field),
+            EventDecodingError::WrongType(ref field, ref t) => {
+                write!(f, "WrongType({}, {})", field, t)
             }
         }
     }
 }
 
-fn decode_msg_json(obj: json::Object) -> Result<Event, MessageDecodeError> {
+impl From<json::BuilderError> for EventDecodingError {
+    fn from(err: json::BuilderError) -> EventDecodingError {
+        EventDecodingError::InvalidJson(err)
+    }
+}
+
+/// Extract a &str ($key) from a json::Object ($obj)
+/// Returns an Err(EventDecodingError) when it fails
+macro_rules! get_json_string {
+    ($obj:ident, $key:expr) => {
+        {
+            let json_str: &Json = match $obj.get($key) {
+                Some(json_str) => json_str,
+                None => return Err(EventDecodingError::MissingField($key.to_owned()))
+            };
+
+            match json_str.as_string() {
+                Some(slice) => slice.to_owned(),
+                None => {
+                    return Err(EventDecodingError::WrongType($key.to_owned(), "string".to_owned()))
+               }
+            }
+        }
+    }
+}
+
+fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
     // Messages with a `subtype` are not plain text messages.. Not interested in them for now.
     if obj.contains_key("subtype") {
         return Ok(Event::Message(Msg::Other(obj)))
@@ -132,11 +169,11 @@ fn decode_msg_json(obj: json::Object) -> Result<Event, MessageDecodeError> {
     })))
 }
 
-fn decode_json(raw: &str) -> Result<Event, MessageDecodeError> {
+fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
     let json = try!(Json::from_str(raw));
     let obj = match json {
         Json::Object(obj) => obj,
-        _ => return Err(MessageDecodeError("string is not json object"))
+        _ => return Err(EventDecodingError::WrongType("root".to_owned(), "object".to_owned()))
     };
 
     // If the message does not have a `type`, it is a confirmation message
@@ -146,7 +183,7 @@ fn decode_json(raw: &str) -> Result<Event, MessageDecodeError> {
 
     let msg = match obj.get("type").expect("obj has key type but failed to get").as_string() {
         Some(s) => s.to_owned(),
-        None => return Err(MessageDecodeError("type field is not a string"))
+        None => return Err(EventDecodingError::WrongType("type".to_owned(), "string".to_owned()))
     };
 
     match msg.as_ref() {
@@ -162,7 +199,7 @@ fn decode_json(raw: &str) -> Result<Event, MessageDecodeError> {
 /// This methods provides additional error handling around json::decode for certain errors
 /// that cannot be handled in the Decodable implementation. Specifically, MissingFieldError
 /// where the field is "type" are actually valid messages despite missing the "type" field.
-fn string_to_slack_msg(raw: &str) -> Result<Event, MessageDecodeError> {
+fn string_to_slack_msg(raw: &str) -> Result<Event, EventDecodingError> {
     // Some messages arriving from the slack client don't have a type. So far I've only
     // witnessed confirmation messages arriving in this fashion. Since they go through the same
     // pipeline as content messages, the decoder should be able to handle them.
