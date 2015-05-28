@@ -6,7 +6,7 @@ use rustc_serialize::json::{self, Json, ToJson};
 
 use message::OutgoingMessage;
 
-/// Data for a Event::Message
+/// Data for an Event::Message(Msg::Plain)
 #[allow(dead_code)]
 pub struct MessageData {
     text: String,
@@ -26,10 +26,15 @@ macro_rules! str_accessor {
 
 #[allow(dead_code)]
 impl MessageData {
+    /// Get the message text
     str_accessor!(text);
+    /// Channel where the message was sent
     str_accessor!(channel);
+    /// User who sent the message
     str_accessor!(user);
+    /// When the message was sent
     str_accessor!(ts);
+    /// Team owning the message
     str_accessor!(team);
 }
 
@@ -54,6 +59,7 @@ pub enum Msg {
     Other(json::Object)
 }
 
+/// Errors that can occur when parsing a slack JSON message
 #[derive(Debug)]
 pub enum EventDecodingError {
     InvalidJson(json::BuilderError),
@@ -116,7 +122,8 @@ macro_rules! get_json_string {
     }
 }
 
-pub fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
+/// Decode the Event::Message data
+fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
     // Messages with a `subtype` are not plain text messages.. Not interested in them for now.
     if obj.contains_key("subtype") {
         return Ok(Event::Message(Msg::Other(obj)))
@@ -132,7 +139,9 @@ pub fn decode_msg_json(obj: json::Object) -> Result<Event, EventDecodingError> {
     })))
 }
 
-pub fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
+/// Convert a JSON string to a Event
+pub fn string_to_slack_msg(raw: &str) -> Result<Event, EventDecodingError> {
+    // The message should be a string representation of a JSON object
     let json = try!(Json::from_str(raw));
     let obj = match json {
         Json::Object(obj) => obj,
@@ -144,11 +153,13 @@ pub fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
         return Ok(Event::Other(obj))
     }
 
+    // Get the message type. It should be a string.
     let msg = match obj.get("type").expect("obj has key type but failed to get").as_string() {
         Some(s) => s.to_owned(),
         None => return Err(EventDecodingError::WrongType("type".to_owned(), "string".to_owned()))
     };
 
+    // Handle different message types
     match msg.as_ref() {
         // If it's a message type, try and return an Event::Message
         "message" => decode_msg_json(obj),
@@ -157,18 +168,10 @@ pub fn decode_json(raw: &str) -> Result<Event, EventDecodingError> {
     }
 }
 
-/// Convert a JSON string to a Event
+/// An outgoing slack event.
 ///
-/// This methods provides additional error handling around json::decode for certain errors
-/// that cannot be handled in the Decodable implementation. Specifically, MissingFieldError
-/// where the field is "type" are actually valid messages despite missing the "type" field.
-pub fn string_to_slack_msg(raw: &str) -> Result<Event, EventDecodingError> {
-    // Some messages arriving from the slack client don't have a type. So far I've only
-    // witnessed confirmation messages arriving in this fashion. Since they go through the same
-    // pipeline as content messages, the decoder should be able to handle them.
-    decode_json(raw)
-}
-
+/// The OutgoingEvent type only supports type = "message" at this time. The `type` field is recorded
+/// in the struct as `msg_type` since rust has a conflicting `type` keyword.
 #[derive(Debug)]
 pub struct OutgoingEvent {
     id: i64,
