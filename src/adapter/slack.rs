@@ -9,9 +9,6 @@ use std::sync::mpsc::channel;
 use std::thread;
 
 use rustc_serialize::json::{self, Json, ToJson};
-use rustc_serialize::json::DecoderError::MissingFieldError;
-use rustc_serialize::Decodable;
-use rustc_serialize::Decoder;
 
 use slack::Message;
 
@@ -96,7 +93,7 @@ enum Msg {
 struct MessageDecodeError(&'static str);
 
 impl From<json::BuilderError> for MessageDecodeError {
-    fn from(err: json::BuilderError) -> MessageDecodeError {
+    fn from(_: json::BuilderError) -> MessageDecodeError {
         MessageDecodeError("json::BuilderError")
     }
 }
@@ -119,7 +116,7 @@ macro_rules! get_json_string {
     }
 }
 
-fn decode_msg_json(obj: json::Object, msg_type: &str) -> Result<Event, MessageDecodeError> {
+fn decode_msg_json(obj: json::Object) -> Result<Event, MessageDecodeError> {
     // Messages with a `subtype` are not plain text messages.. Not interested in them for now.
     if obj.contains_key("subtype") {
         return Ok(Event::Message(Msg::Other(obj)))
@@ -154,7 +151,7 @@ fn decode_json(raw: &str) -> Result<Event, MessageDecodeError> {
 
     match msg.as_ref() {
         // If it's a message type, try and return an Event::Message
-        "message" => decode_msg_json(obj, msg.as_ref()),
+        "message" => decode_msg_json(obj),
         // Some other type we don't explicitly handle
         _ => Ok(Event::Other(obj)),
     }
@@ -367,6 +364,11 @@ mod tests {
             "channel":"D04UYUAMW",
             "ts":"1432695826.000060"
         }"#;
+
+        match string_to_slack_msg(raw).unwrap() {
+            Event::Message(Msg::Other(_)) => return,
+            _ => panic!("expected Msg::Other")
+        }
     }
 
     #[test]
@@ -380,6 +382,11 @@ mod tests {
             "event_ts":"1432695848.617155",
             "ts":"1432695848.000061"
         }"#;
+
+        match string_to_slack_msg(raw).unwrap() {
+            Event::Message(Msg::Other(_)) => return,
+            _ => panic!("expected Msg::Other")
+        }
     }
 
 }
