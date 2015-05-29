@@ -20,13 +20,12 @@ extern crate chatbot;
 
 use chatbot::Chatbot;
 use chatbot::adapter::CliAdapter;
-use chatbot::handler::BasicMessageHandler;
 
 fn main() {
     let mut bot = Chatbot::new();
 
-    let echo = handler!("EchoHandler", r"echo .+", |msg| {
-        msg.to_owned()
+    let echo = handler!("EchoHandler", r"echo .+", |_, msg| {
+        Some(msg.to_owned())
     });
 
     bot.add_handler(echo);
