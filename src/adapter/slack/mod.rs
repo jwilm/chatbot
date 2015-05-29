@@ -13,6 +13,7 @@ use rustc_serialize::json::ToJson;
 
 use slack::Message;
 
+use chatbot::Chatbot;
 use adapter::ChatAdapter;
 use message::AdapterMsg;
 use message::IncomingMessage;
@@ -81,7 +82,7 @@ impl ChatAdapter for SlackAdapter {
         "SlackAdapter"
     }
 
-    fn process_events(&self, tx_incoming: Sender<IncomingMessage>) {
+    fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
         println!("SlackAdapter: process_events");
         let (tx_outgoing, rx_outgoing) = channel();
 

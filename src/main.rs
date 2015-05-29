@@ -7,6 +7,7 @@ use std::env;
 use chatbot::Chatbot;
 use chatbot::adapter::CliAdapter;
 use chatbot::adapter::SlackAdapter;
+use chatbot::adapter::IrcAdapter;
 use chatbot::handler::GithubIssueLinker;
 
 use getopts::Options;
@@ -33,6 +34,16 @@ fn main() {
     match adapter_name.as_ref() {
         "slack" => bot.add_adapter(SlackAdapter::new()),
         "cli" => bot.add_adapter(CliAdapter::new()),
+        "irc" => {
+            let config = chatbot::adapter::irc::Config {
+                nickname: Some(format!("mr_t_bot")),
+                alt_nicks: Some(vec![format!("chatbot_rs"), format!("chatbotrs")]),
+                server: Some(format!("irc.mozilla.org")),
+                channels: Some(vec![format!("#chatbot")]),
+                .. Default::default()
+            };
+            bot.add_adapter(IrcAdapter::new(config))
+        },
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
 

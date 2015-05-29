@@ -44,7 +44,7 @@ impl Chatbot {
         let (incoming_tx, incoming_rx) = channel();
 
         for adapter in &self.adapters {
-            adapter.process_events(incoming_tx.clone());
+            adapter.process_events(self, incoming_tx.clone());
         }
 
         loop {

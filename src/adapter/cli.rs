@@ -4,10 +4,11 @@ use std::thread;
 use std::io;
 use std::io::Write;
 
+use adapter::ChatAdapter;
+use chatbot::Chatbot;
 use message::IncomingMessage;
 use message::AdapterMsg;
 
-use adapter::ChatAdapter;
 
 /// The CliAdapter reads lines from stdin and dispatches them as
 /// IncomingMessages to the chatbot.  Replies are printed to stdout. There is
@@ -32,7 +33,7 @@ impl ChatAdapter for CliAdapter {
     /// 1.  receive input from stdin and
     /// 2.  listen for messages coming from the main thread. This implementation
     ///     may be horribly inefficient.
-    fn process_events(&self, tx_incoming: Sender<IncomingMessage>) {
+    fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
         println!("CliAdapter: process_events");
 
         let (tx_outgoing, rx_outgoing) = channel();
