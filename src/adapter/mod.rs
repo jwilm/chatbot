@@ -1,4 +1,4 @@
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 
 use message::IncomingMessage;
 
@@ -16,8 +16,10 @@ pub trait ChatAdapter {
     fn get_name(&self) -> &str;
 
     /// ChatAdapters must implement process_events. What this method does will
-    /// vary wildly by adapter. At the very least, it must return a receiver
-    /// which the main loop will `recv` on to get messages from the adapter.
-    fn process_events(&self) -> Receiver<IncomingMessage>;
+    /// vary wildly by adapter. At the very least, it must generate IncominMessages from its input,
+    /// send them via the `Sender` that's passed in. The main loop has the other end of this
+    /// receiver. The IncomingMessage must be constructed with a `Sender<OutgoingMessage>` for
+    /// which the adapter listens on the Receiver to send messages back to the service.
+    fn process_events(&self, Sender<IncomingMessage>);
 }
 
