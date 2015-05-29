@@ -1,4 +1,4 @@
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 use std::thread;
 use std::io;
@@ -32,10 +32,9 @@ impl ChatAdapter for CliAdapter {
     /// 1.  receive input from stdin and
     /// 2.  listen for messages coming from the main thread. This implementation
     ///     may be horribly inefficient.
-    fn process_events(&self) -> Receiver<IncomingMessage> {
+    fn process_events(&self, tx_incoming: Sender<IncomingMessage>) {
         println!("CliAdapter: process_events");
 
-        let (tx_incoming, rx_incoming) = channel();
         let (tx_outgoing, rx_outgoing) = channel();
         let name = self.get_name().to_owned();
 
@@ -77,7 +76,6 @@ impl ChatAdapter for CliAdapter {
             }
         }).ok().expect("failed to create stdio <-> chatbot proxy");
 
-        rx_incoming
     }
 }
 

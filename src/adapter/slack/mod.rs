@@ -6,7 +6,6 @@ use self::message::*;
 use std::env;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::mpsc::Sender;
-use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -38,8 +37,8 @@ impl SlackAdapter {
 
 struct MyHandler {
   count: i64,
-  tx_bot: Sender<IncomingMessage>,
-  tx_adapter: Sender<AdapterMsg>
+  tx_incoming: Sender<IncomingMessage>,
+  tx_outgoing: Sender<AdapterMsg>
 }
 
 #[allow(unused_variables)]
@@ -54,9 +53,10 @@ impl slack::MessageHandler for MyHandler {
                     Event::Message(Msg::Plain(msg)) => {
                         let incoming = IncomingMessage::new("SlackAdapter".to_owned(), None,
                             Some(msg.channel().to_owned()), Some(msg.user().to_owned()),
-                            msg.text().to_owned(), self.tx_adapter.clone());
+                            msg.text().to_owned(), self.tx_outgoing.clone());
 
-                        self.tx_bot.send(incoming).ok().expect("Bot unable to process messages");
+                        self.tx_incoming.send(incoming)
+                                        .ok().expect("Bot unable to process messages");
                     },
                     _ => ()
                 }
@@ -81,10 +81,9 @@ impl ChatAdapter for SlackAdapter {
         "SlackAdapter"
     }
 
-    fn process_events(&self) -> Receiver<IncomingMessage> {
+    fn process_events(&self, tx_incoming: Sender<IncomingMessage>) {
         println!("SlackAdapter: process_events");
-        let (tx_bot, rx_bot) = channel();
-        let (tx_adapter, rx_adapter) = channel();
+        let (tx_outgoing, rx_outgoing) = channel();
 
         let uid = AtomicIsize::new(0);
 
@@ -93,13 +92,17 @@ impl ChatAdapter for SlackAdapter {
         let slack_tx = cli.get_outs().unwrap();
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
-            let mut handler = MyHandler{count: 0, tx_bot: tx_bot, tx_adapter: tx_adapter};
+            let mut handler = MyHandler {
+                count: 0,
+                tx_incoming: tx_incoming,
+                tx_outgoing: tx_outgoing
+            };
             cli.run::<MyHandler>(&mut handler, client, slack_rx).unwrap();
         }).ok().expect("failed to create thread for slack receiver");
 
         thread::Builder::new().name("Chatbot Slack Sender".to_owned()).spawn(move || {
             loop {
-                match rx_adapter.recv() {
+                match rx_outgoing.recv() {
                     Ok(msg) => {
                         match msg {
                             AdapterMsg::Outgoing(m) => {
@@ -117,7 +120,5 @@ impl ChatAdapter for SlackAdapter {
                 }
             }
         }).ok().expect("failed to create thread for slack sender");
-
-        rx_bot
     }
 }

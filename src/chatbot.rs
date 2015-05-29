@@ -1,3 +1,5 @@
+use std::sync::mpsc::channel;
+
 use adapter::ChatAdapter;
 use handler::MessageHandler;
 
@@ -24,9 +26,6 @@ impl Chatbot {
         where T: ChatAdapter + 'static
     {
         println!("Adding adapter {}", adapter.get_name());
-        // Temporarily limit the number of concurrent adapters to 1 until
-        // switching to mio or similar
-        assert_eq!(self.adapters.len(), 0);
         self.adapters.push(Box::new(adapter))
     }
 
@@ -39,17 +38,18 @@ impl Chatbot {
 
     pub fn run(&self) {
 
-        println!("Chatbot: starting {} adapters", self.adapters.len());
+        println!("Chatbot: {} adapters", self.adapters.len());
+        println!("Chatbot: {} handlers", self.handlers.len());
 
-        let ref adapter = self.adapters[0];
-        let adapter_rx = adapter.process_events();
+        let (incoming_tx, incoming_rx) = channel();
 
-        println!("Have {} receivers", self.adapters.len());
-        println!("Chatbot: entering main loop");
+        for adapter in &self.adapters {
+            adapter.process_events(incoming_tx.clone());
+        }
 
         loop {
             // Get message from adapter
-            let msg = match adapter_rx.recv() {
+            let msg = match incoming_rx.recv() {
                 Ok(msg) => msg,
                 Err(_) => break
             };
