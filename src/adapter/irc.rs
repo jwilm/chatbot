@@ -75,40 +75,7 @@ impl ChatAdapter for IrcAdapter {
                         }
                     }
                 }
-
-
-                // for command in server.iter_cmd() {
-                //     // Use of unwrap() on the results of iter_cmd() is discouraged since response
-                //     // codes will be received as parsing errors when using this type of iterator.
-                //     println!("{:?}", command);
-                //     if let Ok(Command::PRIVMSG(chan, msg)) = command {
-
-                //         let incoming = IncomingMessage::new("IrcAdapter".to_owned(),
-                //             Some(server.config().server().to_owned()),
-                //             Some(chan.to_owned()), user, msg.to_owned(), tx_outgoing.clone());
-
-                //         println!("{:?}", incoming);
-
-                //         tx_incoming.send(incoming).ok().expect("chatbot not receiving messages");
-                //     }
-                // }
             }).ok().expect("failed to create irc listener thread");
         }
-
-        // for message in server.iter() {
-        //     let message = message.unwrap(); // We'll just panic if there's an error.
-        //     println!("{:?}", message);
-        //     if let Some(src_nick) = message.get_source_nickname() {
-        //         println!("get_source_nickname: {}", src_nick);
-        //     }
-        //     if &message.command[..] == "PRIVMSG" {
-        //         if let Some(msg) = message.suffix {
-        //             if msg.contains("mr_t_bot") {
-        //                 server.send_privmsg(&message.args[0], "Hi!").unwrap();
-        //             }
-        //         }
-        //     }
-        // }
-
     }
 }
