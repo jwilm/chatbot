@@ -28,7 +28,8 @@ fn main() {
 
     let adapter_name = matches.opt_str("a").unwrap_or("cli".to_owned());
 
-    let mut bot = Chatbot::new("chatbotbot");
+    let name = "chatbotbot";
+    let mut bot = Chatbot::new(name);
 
     // Add adapter based on command line argument
     match adapter_name.as_ref() {
@@ -36,8 +37,8 @@ fn main() {
         "cli" => bot.add_adapter(CliAdapter::new()),
         "irc" => {
             let config = chatbot::adapter::irc::Config {
-                nickname: Some(format!("chatbotbot")),
-                alt_nicks: Some(vec![format!("chatbot_rs"), format!("chatbotrs")]),
+                nickname: Some(format!("{}", name)),
+                alt_nicks: Some(vec![format!("{}_", name), format!("{}__", name)]),
                 server: Some(format!("irc.mozilla.org")),
                 channels: Some(vec![format!("#chatbot")]),
                 .. Default::default()
@@ -49,12 +50,11 @@ fn main() {
 
     let ping = handler!("PingHandler", r"ping", |_, _| { Some("pong".to_owned()) });
 
-    let robot_name = "Mr. T";
     let trout = handler!("TroutSlap", r"slap (?P<user>.+)", move |matches, _| {
         match matches.name("user") {
             Some(user) => {
                 Some(format!("{} slaps {} around a bit with a large trout",
-                             robot_name, user))
+                             name, user))
             },
             None => None
         }
