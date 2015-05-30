@@ -1,6 +1,5 @@
 extern crate irc;
 
-use std::sync::Mutex;
 use std::sync::Arc;
 use std::thread;
 
@@ -9,7 +8,6 @@ use std::thread;
 pub use irc::client::data::Config;
 
 use irc::client::data::Command;
-use irc::client::data::message::ToMessage;
 use irc::client::server::IrcServer;
 use irc::client::server::Server;
 use irc::client::server::utils::ServerExt;
@@ -20,6 +18,7 @@ use std::sync::mpsc::Sender;
 use chatbot::Chatbot;
 use adapter::ChatAdapter;
 use message::IncomingMessage;
+use message::AdapterMsg;
 
 /// Connect your bot to IRC with the IrcAdapter
 pub struct IrcAdapter {
@@ -48,7 +47,7 @@ impl ChatAdapter for IrcAdapter {
 
         {
             let server = server.clone();
-            thread::Builder::new().name("IrcAdapter lisener".to_owned()).spawn(move || {
+            thread::Builder::new().name("IrcAdapter Incoming".to_owned()).spawn(move || {
 
                 for message in server.iter() {
                     if message.is_err() {
@@ -66,8 +65,6 @@ impl ChatAdapter for IrcAdapter {
                                     Some(chan.to_owned()), user, msg.to_owned(),
                                     tx_outgoing.clone());
 
-                                println!("{:?}", incoming);
-
                                 tx_incoming.send(incoming)
                                            .ok().expect("chatbot not receiving messages");
                             },
@@ -75,7 +72,35 @@ impl ChatAdapter for IrcAdapter {
                         }
                     }
                 }
-            }).ok().expect("failed to create irc listener thread");
+            }).ok().expect("failed to create incoming thread for IrcAdapter");
         }
+
+        thread::Builder::new().name("IrcAdapter Outgoing".to_owned()).spawn(move || {
+            loop {
+                match rx_outgoing.recv() {
+                    Ok(msg) => {
+                        match msg {
+                            AdapterMsg::Outgoing(m) => {
+                                let incoming = m.get_incoming();
+                                let chan = incoming.channel().unwrap();
+                                let user = incoming.user().unwrap();
+
+                                if &name[..] == chan {
+                                    server.send_privmsg(user, m.as_ref()).unwrap()
+                                } else {
+                                    server.send_privmsg(chan, m.as_ref()).unwrap()
+                                };
+
+                            }
+                            _ => unreachable!("No other messages being sent yet")
+                        }
+                    },
+                    Err(e) => {
+                        println!("error receiving outgoing messages: {}", e);
+                        break
+                    }
+                }
+            }
+        }).ok().expect("failed to create outgoing thread for IrcAdapter");
     }
 }

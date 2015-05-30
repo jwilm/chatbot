@@ -28,7 +28,7 @@ fn main() {
 
     let adapter_name = matches.opt_str("a").unwrap_or("cli".to_owned());
 
-    let mut bot = Chatbot::new();
+    let mut bot = Chatbot::new("chatbotbot");
 
     // Add adapter based on command line argument
     match adapter_name.as_ref() {
@@ -36,7 +36,7 @@ fn main() {
         "cli" => bot.add_adapter(CliAdapter::new()),
         "irc" => {
             let config = chatbot::adapter::irc::Config {
-                nickname: Some(format!("mr_t_bot")),
+                nickname: Some(format!("chatbotbot")),
                 alt_nicks: Some(vec![format!("chatbot_rs"), format!("chatbotrs")]),
                 server: Some(format!("irc.mozilla.org")),
                 channels: Some(vec![format!("#chatbot")]),

@@ -10,9 +10,9 @@ pub struct Chatbot {
 }
 
 impl Chatbot {
-    pub fn new() -> Chatbot {
+    pub fn new(name: &str) -> Chatbot {
         Chatbot {
-            name: "computer".to_owned(),
+            name: name.to_owned(),
             adapters: Vec::new(),
             handlers: Vec::new()
         }
@@ -82,20 +82,21 @@ mod tests {
 
     #[test]
     fn test_create_chatbot() {
-        let bot = Chatbot::new();
-        assert_eq!(bot.get_name(), "computer");
+        let name = "testbot";
+        let bot = Chatbot::new("testbot");
+        assert_eq!(bot.get_name(), name);
     }
 
     #[test]
     fn test_chatbot_add_adapter() {
-        let mut bot = Chatbot::new();
+        let mut bot = Chatbot::new("testbot");
         let cli = CliAdapter::new();
         bot.add_adapter(cli);
     }
 
     #[test]
     fn test_chatbot_add_handler() {
-        let mut bot = Chatbot::new();
+        let mut bot = Chatbot::new("testbot");
         let echo = handler!("EchoHandler", r"echo .+", |_, msg| {
             Some(msg.to_owned())
         });

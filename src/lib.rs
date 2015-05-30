@@ -38,7 +38,7 @@
 //! use chatbot::Chatbot;
 //! use chatbot::adapter::CliAdapter;
 //!
-//! let mut bot = Chatbot::new();
+//! let mut bot = Chatbot::new("echobot");
 //!
 //! let echo = handler!("EchoHandler", r"echo .+", |_, msg| {
 //!     Some(msg.to_owned())

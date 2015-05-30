@@ -82,7 +82,7 @@ impl ChatAdapter for SlackAdapter {
         "SlackAdapter"
     }
 
-    fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
+    fn process_events(&self, _: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
         println!("SlackAdapter: process_events");
         let (tx_outgoing, rx_outgoing) = channel();
 

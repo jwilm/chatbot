@@ -82,10 +82,11 @@ impl IncomingMessage {
     }
 
     pub fn channel(&self) -> Option<&str> {
-        match self.channel {
-            Some(ref channel) => Some(channel.as_ref()),
-            None => None
-        }
+        self.channel.as_ref().map(|chan| chan.as_ref())
+    }
+
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(|user| user.as_ref())
     }
 
     pub fn get_contents(&self) -> &str {

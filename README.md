@@ -22,7 +22,7 @@ use chatbot::Chatbot;
 use chatbot::adapter::CliAdapter;
 
 fn main() {
-    let mut bot = Chatbot::new();
+    let mut bot = Chatbot::new("chatbot_name");
 
     let echo = handler!("EchoHandler", r"echo .+", |_, msg| {
         Some(msg.to_owned())

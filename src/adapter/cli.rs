@@ -33,7 +33,7 @@ impl ChatAdapter for CliAdapter {
     /// 1.  receive input from stdin and
     /// 2.  listen for messages coming from the main thread. This implementation
     ///     may be horribly inefficient.
-    fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
+    fn process_events(&self, _: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
         println!("CliAdapter: process_events");
 
         let (tx_outgoing, rx_outgoing) = channel();
