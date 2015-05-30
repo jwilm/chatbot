@@ -9,8 +9,9 @@ pub use self::cli::CliAdapter;
 mod slack;
 pub use self::slack::SlackAdapter;
 
-pub mod irc;
+mod irc;
 pub use self::irc::IrcAdapter;
+pub use self::irc::IrcConfig;
 
 /// Chatbot is extensible in both message sources and command handling. To add a
 /// new message source, create a type that implements the `ChatAdapter` trait.

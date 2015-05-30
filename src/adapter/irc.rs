@@ -3,9 +3,7 @@ extern crate irc;
 use std::sync::Arc;
 use std::thread;
 
-/// Reexport the irc crate server config for now. Example programs can just grab it from here rather
-/// than know the irc crate internals.
-pub use irc::client::data::Config;
+pub type IrcConfig = irc::client::data::Config;
 
 use irc::client::data::Command;
 use irc::client::server::IrcServer;
@@ -21,12 +19,33 @@ use message::IncomingMessage;
 use message::AdapterMsg;
 
 /// Connect your bot to IRC with the IrcAdapter
+///
+/// # Examples
+///
+/// ```rust
+/// use chatbot::Chatbot;
+/// use chatbot::adapter::IrcAdapter;
+/// use chatbot::adapter::IrcConfig;
+///
+/// let name = "mybot";
+/// let mut bot = Chatbot::new(name);
+///
+/// let irc = IrcAdapter::new(IrcConfig {
+///     nickname: Some(format!("{}", name)),
+///     alt_nicks: Some(vec![format!("{}_", name), format!("{}__", name)]),
+///     server: Some(format!("irc.mozilla.org")),
+///     channels: Some(vec![format!("#chatbot")]),
+///     .. Default::default()
+/// });
+///
+/// bot.add_adapter(irc);
+/// ```
 pub struct IrcAdapter {
-    config: Config
+    config: IrcConfig
 }
 
 impl IrcAdapter {
-    pub fn new(config: Config) -> IrcAdapter {
+    pub fn new(config: IrcConfig) -> IrcAdapter {
         IrcAdapter {
             config: config
         }

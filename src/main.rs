@@ -36,7 +36,7 @@ fn main() {
         "slack" => bot.add_adapter(SlackAdapter::new()),
         "cli" => bot.add_adapter(CliAdapter::new()),
         "irc" => {
-            let config = chatbot::adapter::irc::Config {
+            let config = chatbot::adapter::IrcConfig {
                 nickname: Some(format!("{}", name)),
                 alt_nicks: Some(vec![format!("{}_", name), format!("{}__", name)]),
                 server: Some(format!("irc.mozilla.org")),
