@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::SendError;
 
@@ -6,6 +9,7 @@ use std::sync::mpsc::SendError;
 /// control messages which a well behaved adapter should handle.
 ///
 /// The Shutdown variant indicates that the bot wishes to shutdown.
+#[derive(Debug)]
 pub enum AdapterMsg {
     Outgoing(OutgoingMessage),
     Shutdown
@@ -13,6 +17,7 @@ pub enum AdapterMsg {
 
 /// An OutgoingMessage is a response to some IncomingMessage. It contains a
 /// String and a copy of the IncomingMessage that it is in reply to.
+#[derive(Debug)]
 pub struct OutgoingMessage {
     response: String,
     incoming: IncomingMessage
@@ -77,10 +82,11 @@ impl IncomingMessage {
     }
 
     pub fn channel(&self) -> Option<&str> {
-        match self.channel {
-            Some(ref channel) => Some(channel.as_ref()),
-            None => None
-        }
+        self.channel.as_ref().map(|chan| chan.as_ref())
+    }
+
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_ref().map(|user| user.as_ref())
     }
 
     pub fn get_contents(&self) -> &str {
@@ -94,3 +100,9 @@ impl IncomingMessage {
     }
 }
 
+impl Debug for IncomingMessage {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "IncomingMessage(from_adapter: {:?}, server: {:?}, channel: {:?}, user: {:?}, \
+            message: {:?})", self.from_adapter, self.server, self.channel, self.user, self.message)
+    }
+}

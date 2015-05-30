@@ -1,12 +1,16 @@
 use std::sync::mpsc::Sender;
 
 use message::IncomingMessage;
+use chatbot::Chatbot;
 
 mod cli;
 pub use self::cli::CliAdapter;
 
 mod slack;
 pub use self::slack::SlackAdapter;
+
+pub mod irc;
+pub use self::irc::IrcAdapter;
 
 /// Chatbot is extensible in both message sources and command handling. To add a
 /// new message source, create a type that implements the `ChatAdapter` trait.
@@ -20,6 +24,6 @@ pub trait ChatAdapter {
     /// send them via the `Sender` that's passed in. The main loop has the other end of this
     /// receiver. The IncomingMessage must be constructed with a `Sender<OutgoingMessage>` for
     /// which the adapter listens on the Receiver to send messages back to the service.
-    fn process_events(&self, Sender<IncomingMessage>);
+    fn process_events(&self, &Chatbot, Sender<IncomingMessage>);
 }
 
