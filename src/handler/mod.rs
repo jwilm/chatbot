@@ -1,13 +1,16 @@
 extern crate regex;
 
 use std::error::Error;
-use std::sync::mpsc::SendError;
 use std::fmt;
+use std::io;
+use std::sync::mpsc::SendError;
 use regex::Regex;
 use regex::Captures;
 
 mod githubissue;
 pub use self::githubissue::GithubIssueLinker;
+
+pub mod sup;
 
 use message::IncomingMessage;
 use message::AdapterMsg;
@@ -18,7 +21,6 @@ enum HandlerError {
     /// Failed to send reply
     Reply(SendError<AdapterMsg>),
     /// Other indicates any mode that's not explicitly part of HandlerError
-    #[allow(dead_code)]
     Other(Box<Error>)
 }
 
@@ -50,6 +52,12 @@ impl fmt::Display for HandlerError {
 impl From<SendError<AdapterMsg>> for HandlerError {
     fn from(err: SendError<AdapterMsg>) -> HandlerError {
         HandlerError::Reply(err)
+    }
+}
+
+impl From<io::Error> for HandlerError {
+    fn from(err: io::Error) -> HandlerError {
+        HandlerError::Other(Box::new(err))
     }
 }
 
