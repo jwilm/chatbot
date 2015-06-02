@@ -5,10 +5,9 @@ extern crate getopts;
 use std::env;
 
 use chatbot::Chatbot;
-use chatbot::adapter::CliAdapter;
-use chatbot::adapter::SlackAdapter;
-use chatbot::adapter::IrcAdapter;
+use chatbot::adapter::{CliAdapter, SlackAdapter, IrcAdapter};
 use chatbot::handler::GithubIssueLinker;
+use chatbot::handler::sup::{self, PrintLadder};
 
 use getopts::Options;
 use getopts::ParsingStyle;
@@ -63,6 +62,17 @@ fn main() {
     let echo = handler!("EchoHandler", r"echo (?P<msg>.+)", |matches, _| {
         matches.name("msg").map(|msg| { msg.to_owned() })
     });
+
+
+    // Add ping pong leaderboard handlers if environment variables are set
+    let sup_account = sup::account_from_env();
+    match sup_account {
+        Ok(account) => {
+            let list_handler = PrintLadder::new(account, 5);
+            bot.add_handler(list_handler);
+        }
+        _ => ()
+    }
 
     bot.add_handler(ping);
     bot.add_handler(trout);
