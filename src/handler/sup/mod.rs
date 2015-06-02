@@ -21,7 +21,8 @@ pub type Account = startuppong::Account;
 /// of the ladder, 1 line per player, to the requester.
 pub struct PrintLadder {
     account: Account,
-    regex: Regex
+    regex: Regex,
+    max_entries: usize
 }
 
 impl PrintLadder {
@@ -29,10 +30,11 @@ impl PrintLadder {
     ///
     /// Requires a startuppong::Account. You will need to register on startuppong.com if you wish to
     /// use this handler.
-    pub fn new(account: Account) -> PrintLadder {
+    pub fn new(account: Account, max_entries: usize) -> PrintLadder {
         PrintLadder {
             account: account,
-            regex: regex!(r"(print|list|show).+ping ?pong")
+            regex: regex!(r"(print|list|show).+ping ?pong"),
+            max_entries: max_entries
         }
     }
 }
@@ -52,8 +54,14 @@ impl MessageHandler for PrintLadder {
         let players = res.players();
         let mut reply = Vec::new();
 
-        for player in &players {
-            try!(write!(&mut reply, "{} - {}\n", player.rank, player.name));
+        let len = if players.len() < self.max_entries {
+            players.len()
+        } else {
+            self.max_entries
+        };
+
+        for i in 0..len {
+            try!(write!(&mut reply, "{} - {}\n", players[i].rank, players[i].name));
         }
 
         Ok(try!(incoming.reply(str::from_utf8(&reply).unwrap().to_string())))
