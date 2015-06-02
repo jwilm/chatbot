@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn check_valid_messages() {
         let acc = Account::new("a".to_string(), "b".to_string());
-        let handler = PrintLadder::new(&acc);
+        let handler = PrintLadder::new(acc, 10);
 
         assert!(handler.can_handle("print the pingpong ladder"));
         assert!(handler.can_handle("list the pingpong ladder"));
@@ -97,7 +97,7 @@ mod tests {
     #[test]
     fn check_invalid_messages() {
         let acc = Account::new("a".to_string(), "b".to_string());
-        let handler = PrintLadder::new(&acc);
+        let handler = PrintLadder::new(acc, 10);
 
         assert!(!handler.can_handle("who's on top of ping pong ladder?"));
     }
