@@ -7,7 +7,7 @@ use std::env;
 use chatbot::Chatbot;
 use chatbot::adapter::{CliAdapter, SlackAdapter, IrcAdapter};
 use chatbot::handler::GithubIssueLinker;
-use chatbot::handler::sup::{self, PrintLadder};
+use chatbot::handler::sup::{self, PrintLadder, AddMatch};
 
 use getopts::Options;
 use getopts::ParsingStyle;
@@ -68,8 +68,12 @@ fn main() {
     let sup_account = sup::account_from_env();
     match sup_account {
         Ok(account) => {
+            let account2 = sup::Account::new(account.id().to_string(), account.key().to_string());
             let list_handler = PrintLadder::new(account, 5);
             bot.add_handler(list_handler);
+
+            let add_handler = AddMatch::new(account2);
+            bot.add_handler(add_handler);
         }
         _ => ()
     }
