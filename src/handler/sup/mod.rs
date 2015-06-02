@@ -5,28 +5,31 @@ use std::io::Write;
 use std::str;
 
 use regex::Regex;
-use startuppong::Account;
+
+pub use startuppong::account_from_env;
 
 use handler::MessageHandler;
 use handler::HandlerResult;
 use handler::HandlerError;
 use message::IncomingMessage;
 
+pub type Account = startuppong::Account;
+
 /// Startuppong.com get_players handler
 ///
 /// Messages requesting to "show ping pong" or "list ping pong" will result in a dump
 /// of the ladder, 1 line per player, to the requester.
-pub struct PrintLadder<'a> {
-    account: &'a Account,
+pub struct PrintLadder {
+    account: Account,
     regex: Regex
 }
 
-impl<'a> PrintLadder<'a> {
+impl PrintLadder {
     /// Create the PrintLadder handler.
     ///
-    /// Requires a reference to a startuppong::Account. You will need to register on
-    /// startuppong.com if you wish to use this handler.
-    pub fn new(account: &'a Account) -> PrintLadder<'a> {
+    /// Requires a startuppong::Account. You will need to register on startuppong.com if you wish to
+    /// use this handler.
+    pub fn new(account: Account) -> PrintLadder {
         PrintLadder {
             account: account,
             regex: regex!(r"(print|list|show).+ping ?pong")
@@ -34,7 +37,8 @@ impl<'a> PrintLadder<'a> {
     }
 }
 
-impl<'a> MessageHandler for PrintLadder<'a> {
+
+impl MessageHandler for PrintLadder {
     fn name(&self) -> &str {
         "PrintLadder"
     }
@@ -44,7 +48,7 @@ impl<'a> MessageHandler for PrintLadder<'a> {
     }
 
     fn handle(&self, incoming: &IncomingMessage) -> HandlerResult {
-        let res = try!(startuppong::get_players(self.account));
+        let res = try!(startuppong::get_players(&self.account));
         let players = res.players();
         let mut reply = Vec::new();
 
