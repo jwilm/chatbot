@@ -57,6 +57,7 @@ extern crate hyper;
 extern crate rustc_serialize;
 extern crate slack;
 extern crate irc;
+extern crate startuppong;
 
 #[macro_export]
 macro_rules! regex(
