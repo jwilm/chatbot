@@ -1,32 +1,54 @@
 #![deny(unused_must_use)]
 
 //!
-//! chatbot is an extensible platform for writing chatbots.
+//! An extensible platform for writing chatbots.
 //!
-//! Note: the only adapter available at this time is the
-//! [`CliAdapter`](adapter/cli/struct.CliAdapter.html). For a complete list of
-//! all adapters, see
-//! [implementations](adapter/trait.ChatAdapter.html#implementors).
+//! Chatbot is extensible in both adapters (services it connects to like IRC or Slack) and handlers
+//! (the bits of code processing messages). Several adapters are provided out of the box including a
+//! [Command-line Adapter][], an [IRC Adapter][], and a [Slack Adapter][]. There's also several
+//! handlers built in which can be viewed in the [implementors][Messagehandler implementors] section
+//! of the handler module.
 //!
-//! ## Handlers and Adapters
+//! `cargo run` will get you a working command line bot immediately after cloning. The `main.rs`
+//! file is the default binary and is a good starting place to hack on your own bot.
 //!
-//! At its core are the ideas of handlers and adapters. An adapter
-//! (implementation of the [`ChatAdapter`](adapter/trait.ChatAdapter.html)
-//! trait) enables the push and pull of information from a service like IRC,
-//! Slack, web hooks, and etc. Several adapters can be run simultaneously.
-//! Cross-service responses are not (currently) supported. For example, messages
-//! arriving from IRC can not send a response to Slack.  A handler
-//! (implementation of the [`MessageHandler`](handler/trait.MessageHandler.html)
-//! trait) can reply to incoming messages. In the current version, the entire
-//! message is passed into each handler and it is up to the handler to determine
-//! whether it is interested in the message. This is likely to be changed in the
-//! near future to simplify implementation of the handlers.
+//! [Command-line Adapter]: adapter/struct.CliAdapter.html
+//! [IRC Adapter]: adapter/struct.CliAdapter.html
+//! [Slack Adapter]: adapter/struct.SlackAdapter.html
+//! [MessageHandler implementors]: handler/trait.MessageHandler.html#implementors
+//!
+//! ## Adapters
+//!
+//! An adapter is a wrapper around some service like Slack, IRC, or just the command line. When the
+//! bot starts up, it passes a Sender<IncomingMessage> into the handler `process_events` method.
+//! The main loop owns the receiver and thus gets messages from all of the adapters. When the
+//! adapter gets a message from the underlying service, it must create an IncomingMessage and `send`
+//! it using that Sender. The IncomingMessage must be populated with a `Sender<OutgoingMessage>`
+//! which the adapter calls `recv` on. It is up to the adapter what to do with these
+//! OutgoingMessages. Generally they should be directed to whence they came.
+//!
+//! ## Handlers
+//!
+//! Handlers provide a `Regex` which the main loop uses to check whether the handler is interested.
+//! If the regex matches, `handle` is called on the handler with the IncomingMessage. The handler
+//! can then do some work and call `reply` on the incoming message to send its response. The adapter
+//! which created the incoming message will decide how to route the message back to the service.
+//!
+//! Handlers are not sandboxed and can thus bring the bot down in flames if they decide to panic. It
+//! may be worth sandboxing in threads in the future (maybe make handlers `Runnable` and send to a
+//! worker pool). The built in handlers are written with care as to not panic the bot.
+//!
+//! For very simple handlers, there is a `handler!` macro which lets you pass a regex and a closure
+//! without having to implement the MessageHandler trait. The example below contains an example of
+//! this.
 //!
 //! ## Chatbot
 //!
-//! Chatbot is the type which bridges adapters and handlers. Any program which
-//! uses chatbot will need to minimally create a Chatbot, add an adapter, add a
-//! handler, and call Chatbot [`run`](chatbot/struct.Chatbot.html#method.run).
+//! The Chatbot is the central data structure of the chatbot platform. It contains a `run` method
+//! which listens for messages from adapters and routes them to handlers. Any program which uses
+//! chatbot will need to minimally create a Chatbot, add an adapter, add a handler, and call Chatbot
+//! [`run`](chatbot/struct.Chatbot.html#method.run).
+//!
 //! For example, setting up a simple echo server that responds to CLI input:
 //!
 //! # Examples
@@ -59,6 +81,8 @@ extern crate slack;
 extern crate irc;
 extern crate startuppong;
 
+/// Shorthand for creating a `Regex` as suggested by the regex crate. You probably don't need to
+/// `macro_use` this unless you're creating handlers in an external module.
 #[macro_export]
 macro_rules! regex(
     ($s:expr) => (regex::Regex::new($s).unwrap());
@@ -87,9 +111,9 @@ macro_rules! handler {
 }
 
 
-pub mod chatbot;
 pub mod adapter;
 pub mod handler;
 pub mod message;
 
+mod chatbot;
 pub use chatbot::Chatbot;

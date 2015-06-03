@@ -3,6 +3,10 @@ use std::sync::mpsc::channel;
 use adapter::ChatAdapter;
 use handler::MessageHandler;
 
+/// The Chatbot is the central data structure of the chatbot platform. It contains a `run` method
+/// which listens for messages from adapters and routes them to handlers. Any program which uses
+/// chatbot will need to minimally create a Chatbot, add an adapter, add a handler, and call Chatbot
+/// [`run`](chatbot/struct.Chatbot.html#method.run).
 pub struct Chatbot {
     name: String,
     adapters: Vec<Box<ChatAdapter>>,
@@ -10,6 +14,11 @@ pub struct Chatbot {
 }
 
 impl Chatbot {
+    /// Create a new chatbot instance.
+    ///
+    /// The name provided here will be used for message filtering and in handlers for whatever they
+    /// want. You'll want to make your binding mutable so you can call `add_adapter` and
+    /// `add_handler`.
     pub fn new(name: &str) -> Chatbot {
         Chatbot {
             name: name.to_owned(),
@@ -18,10 +27,16 @@ impl Chatbot {
         }
     }
 
+    /// Return the name provided in initialization
     pub fn get_name(&self) -> &str {
         self.name.as_ref()
     }
 
+    /// Add a ChatAdapter to the bot
+    ///
+    /// Add as many adapters as you like. The IncomingMessages sent by adapters are made available
+    /// to all handlers regardless of how many adapters exist. The IncomingMessage.reply method
+    /// makes sure the response is sent back to the adapter from whence the message came.
     pub fn add_adapter<T>(&mut self, adapter: T)
         where T: ChatAdapter + 'static
     {
@@ -29,6 +44,11 @@ impl Chatbot {
         self.adapters.push(Box::new(adapter))
     }
 
+    /// Add a MessageHandler to the bot
+    ///
+    /// The more handlers you have the more useful your bot becomes (for potentially loose
+    /// definitions of useful :P). Check out the handler! macro for making simple handlers and also
+    /// see the `MessageHandler` implementors section for a list of built in handlers.
     pub fn add_handler<T>(&mut self, handler: T)
         where T: MessageHandler + 'static
     {
@@ -36,7 +56,14 @@ impl Chatbot {
         self.handlers.push(Box::new(handler))
     }
 
+    /// Start processing messages
+    ///
+    /// Call process_events on all of the adapters and `recv` on the `IncomingMessage` channel.
+    /// Distribute IncomingMessages to list of handlers.
     pub fn run(&self) {
+
+        assert!(self.adapters.len() > 0);
+        assert!(self.handlers.len() > 0);
 
         println!("Chatbot: {} adapters", self.adapters.len());
         println!("Chatbot: {} handlers", self.handlers.len());

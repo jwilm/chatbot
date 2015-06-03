@@ -1,3 +1,5 @@
+//! Contains the MessageHandler trait and handler implementations.
+
 extern crate regex;
 
 use std::error::Error;

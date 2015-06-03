@@ -1,3 +1,6 @@
+//! Types for incoming messages, outgoing messages, and an enum wrapper to enable control commands
+//! for adapters.
+
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
@@ -11,7 +14,9 @@ use std::sync::mpsc::SendError;
 /// The Shutdown variant indicates that the bot wishes to shutdown.
 #[derive(Debug)]
 pub enum AdapterMsg {
+    /// A message that should be sent to a chat provider
     Outgoing(OutgoingMessage),
+    /// The chatbot is shutting down and the adapters should nicely terminate their connections.
     Shutdown
 }
 

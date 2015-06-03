@@ -1,7 +1,7 @@
 [package]
 name = "chatbot"
-version = "0.2.0"
-authors = ["Joe Wilm <jdwilm@gmail.com>"]
+version = "0.2.1"
+authors = ["Joe Wilm <joe@jwilm.com>"]
 license = "MIT"
 description = "An extensible chatbot"
 documentation = "https://chatbot.rs/chatbot/"

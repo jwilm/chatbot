@@ -1,3 +1,5 @@
+//! Contains the `ChatAdapter` trait and several implementations
+
 use std::sync::mpsc::Sender;
 
 use message::IncomingMessage;
