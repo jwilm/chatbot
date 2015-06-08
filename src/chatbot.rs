@@ -69,6 +69,7 @@ impl Chatbot {
         self.handlers.push(Box::new(handler))
     }
 
+    /// Add a MessageHandler, that requires the bot to be addressed, to the bot
     pub fn add_addressed_handler<T>(&mut self, handler: T)
         where T: MessageHandler + 'static
     {
