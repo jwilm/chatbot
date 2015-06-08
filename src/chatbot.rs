@@ -38,9 +38,9 @@ impl Chatbot {
         self.name.as_ref()
     }
 
-    /// Return the regular expression of what the bot will be addressed by, if present
-    pub fn get_addresser(&self) -> Option<&Regex> {
-        self.addresser.as_ref()
+    /// Return the regular expression of what the bot will be addressed by
+    pub fn get_addresser(&self) -> &Regex {
+        &self.addresser
     }
 
     /// Add a ChatAdapter to the bot
