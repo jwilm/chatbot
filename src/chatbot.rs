@@ -100,20 +100,17 @@ impl Chatbot {
                 Ok(msg) => msg,
                 Err(_) => break
             };
+            let msg_str = msg.get_contents();
+
+            let handlers = if self.addresser.is_match(msg_str) {
+                &self.addressed_handlers
+            } else {
+                &self.handlers
+            };
 
             // Distribute to handlers
-            for handler in &self.handlers {
-                let msg_str = msg.get_contents();
-
+            for handler in handlers {
                 if handler.can_handle(msg_str) {
-                    // When addresser is present, ignore handlers that don't directly call the
-                    // bot's name
-                    if let Some(ref addresser) = self.addresser {
-                        if !addresser.is_match(msg_str) {
-                            continue;
-                        }
-                    }
-
                     match handler.handle(&msg) {
                         Err(e) => {
                             println!("Error in handler `{}`", handler.name());
