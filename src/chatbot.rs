@@ -43,14 +43,6 @@ impl Chatbot {
         self.addresser.as_ref()
     }
 
-    /// Turns on the requirement of addressing the bot before a handler is triggered
-    pub fn address_by_name(&mut self) {
-        let addresser_str = format!(r"^\s*@?{}[:,\s]\s*", self.get_name());
-        let addresser = Regex::new(addresser_str.as_ref());
-
-        self.addresser = addresser.ok();
-    }
-
     /// Add a ChatAdapter to the bot
     ///
     /// Add as many adapters as you like. The IncomingMessages sent by adapters are made available
