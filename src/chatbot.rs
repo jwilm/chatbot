@@ -100,6 +100,12 @@ impl Chatbot {
                 let msg_str = msg.get_contents();
 
                 if handler.can_handle(msg_str) {
+                    if let Some(ref addresser) = self.addresser {
+                      if !addresser.is_match(msg_str) {
+                        continue;
+                      }
+                    }
+
                     match handler.handle(&msg) {
                         Err(e) => {
                             println!("Error in handler `{}`", handler.name());
