@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::sync::mpsc::channel;
 
 use adapter::ChatAdapter;
@@ -10,7 +11,8 @@ use handler::MessageHandler;
 pub struct Chatbot {
     name: String,
     adapters: Vec<Box<ChatAdapter>>,
-    handlers: Vec<Box<MessageHandler>>
+    handlers: Vec<Box<MessageHandler>>,
+    addresser: Option<Regex>
 }
 
 impl Chatbot {
@@ -23,7 +25,8 @@ impl Chatbot {
         Chatbot {
             name: name.to_owned(),
             adapters: Vec::new(),
-            handlers: Vec::new()
+            handlers: Vec::new(),
+            addresser: None
         }
     }
 
