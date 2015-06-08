@@ -151,4 +151,43 @@ mod tests {
         });
         bot.add_handler(echo);
     }
+
+    #[test]
+    fn test_chatbot_address_by_name() {
+        let mut bot = Chatbot::new("testbot");
+        bot.address_by_name();
+    }
+
+    #[test]
+    fn test_chatbot_address_matches() {
+        let mut bot = Chatbot::new("testbot");
+        bot.address_by_name();
+        let addresser = bot.get_addresser().unwrap();
+
+        assert!(!addresser.is_match("testbotping"),
+                "Shouldn't match bot name without a break (space, colon, comma)");
+        assert!(!addresser.is_match("@testbotping"),
+                "Shouldn't match bot name with '@' sign minus a break (space, colon, comma)");
+
+        // Space separation
+        assert!(addresser.is_match("testbot ping"), "Should match bot name with space");
+        assert!(addresser.is_match("@testbot ping"),
+                "Should match bot name with '@' sign plus '@' space");
+
+        // Colon separation
+        assert!(addresser.is_match("testbot:ping"), "Should match bot name with colon");
+        assert!(addresser.is_match("testbot: ping"), "Should match bot name with colon and space");
+        assert!(addresser.is_match("@testbot:ping"),
+                "Should match bot name with '@' sign plus colon");
+        assert!(addresser.is_match("@testbot: ping"),
+                "Should match bot name with '@' sign plus colon and space");
+
+        // Comma separation
+        assert!(addresser.is_match("testbot,ping"), "Should match bot name with comma");
+        assert!(addresser.is_match("testbot, ping"), "Should match bot name with comma and space");
+        assert!(addresser.is_match("@testbot,ping"),
+                "Should match bot name with '@' sign plus comma");
+        assert!(addresser.is_match("@testbot, ping"),
+                "Should match bot name with '@' sign plus comma and space");
+    }
 }
