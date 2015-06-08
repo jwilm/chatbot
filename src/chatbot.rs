@@ -97,12 +97,14 @@ impl Chatbot {
 
             // Distribute to handlers
             for handler in &self.handlers {
-                if handler.can_handle(msg.get_contents()) {
+                let msg_str = msg.get_contents();
+
+                if handler.can_handle(msg_str) {
                     match handler.handle(&msg) {
                         Err(e) => {
                             println!("Error in handler `{}`", handler.name());
                             println!("{:?}", e);
-                            println!("The incoming message was {}", msg.get_contents());
+                            println!("The incoming message was {}", msg_str);
 
                             // TODO remove handler?
                         },
