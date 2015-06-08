@@ -35,10 +35,12 @@ impl Chatbot {
         self.name.as_ref()
     }
 
+    /// Return the regular expression of what the bot will be addressed by, if present
     pub fn get_addresser(&self) -> Option<&Regex> {
         self.addresser.as_ref()
     }
 
+    /// Turns on the requirement of addressing the bot before a handler is triggered
     pub fn address_by_name(&mut self) {
         let addresser_str = format!(r"^\s*@?{}[:,\s]\s*", self.get_name());
         let addresser = Regex::new(addresser_str.as_ref());
@@ -100,6 +102,8 @@ impl Chatbot {
                 let msg_str = msg.get_contents();
 
                 if handler.can_handle(msg_str) {
+                    // When addresser is present, ignore handlers that don't directly call the
+                    // bot's name
                     if let Some(ref addresser) = self.addresser {
                       if !addresser.is_match(msg_str) {
                         continue;
