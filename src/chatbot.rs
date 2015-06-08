@@ -158,16 +158,9 @@ mod tests {
     }
 
     #[test]
-    fn test_chatbot_address_by_name() {
-        let mut bot = Chatbot::new("testbot");
-        bot.address_by_name();
-    }
-
-    #[test]
     fn test_chatbot_address_matches() {
-        let mut bot = Chatbot::new("testbot");
-        bot.address_by_name();
-        let addresser = bot.get_addresser().unwrap();
+        let bot = Chatbot::new("testbot");
+        let addresser = bot.get_addresser();
 
         assert!(!addresser.is_match("testbotping"),
                 "Shouldn't match bot name without a break (space, colon, comma)");
