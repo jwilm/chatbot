@@ -105,9 +105,9 @@ impl Chatbot {
                     // When addresser is present, ignore handlers that don't directly call the
                     // bot's name
                     if let Some(ref addresser) = self.addresser {
-                      if !addresser.is_match(msg_str) {
-                        continue;
-                      }
+                        if !addresser.is_match(msg_str) {
+                            continue;
+                        }
                     }
 
                     match handler.handle(&msg) {
