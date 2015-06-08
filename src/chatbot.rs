@@ -12,6 +12,7 @@ pub struct Chatbot {
     name: String,
     adapters: Vec<Box<ChatAdapter>>,
     handlers: Vec<Box<MessageHandler>>,
+    addressed_handlers: Vec<Box<MessageHandler>>,
     addresser: Regex
 }
 
@@ -29,6 +30,7 @@ impl Chatbot {
             name: name.to_owned(),
             adapters: Vec::new(),
             handlers: Vec::new(),
+            addressed_handlers: Vec::new(),
             addresser: addresser.unwrap()
         }
     }
@@ -65,6 +67,13 @@ impl Chatbot {
     {
         println!("Adding handler {}", handler.name());
         self.handlers.push(Box::new(handler))
+    }
+
+    pub fn add_addressed_handler<T>(&mut self, handler: T)
+        where T: MessageHandler + 'static
+    {
+        println!("Adding handler {}", handler.name());
+        self.addressed_handlers.push(Box::new(handler))
     }
 
     /// Start processing messages
