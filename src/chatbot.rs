@@ -12,7 +12,7 @@ pub struct Chatbot {
     name: String,
     adapters: Vec<Box<ChatAdapter>>,
     handlers: Vec<Box<MessageHandler>>,
-    addresser: Option<Regex>
+    addresser: Regex
 }
 
 impl Chatbot {
@@ -22,11 +22,14 @@ impl Chatbot {
     /// want. You'll want to make your binding mutable so you can call `add_adapter` and
     /// `add_handler`.
     pub fn new(name: &str) -> Chatbot {
+        let addresser_str = format!(r"^\s*@?{}[:,\s]\s*", name);
+        let addresser = Regex::new(addresser_str.as_ref());
+
         Chatbot {
             name: name.to_owned(),
             adapters: Vec::new(),
             handlers: Vec::new(),
-            addresser: None
+            addresser: addresser.unwrap()
         }
     }
 
