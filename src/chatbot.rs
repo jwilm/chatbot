@@ -35,6 +35,17 @@ impl Chatbot {
         self.name.as_ref()
     }
 
+    pub fn get_addresser(&self) -> Option<&Regex> {
+        self.addresser.as_ref()
+    }
+
+    pub fn address_by_name(&mut self) {
+        let addresser_str = format!(r"^\s*@?{}[:,\s]\s*", self.get_name());
+        let addresser = Regex::new(addresser_str.as_ref());
+
+        self.addresser = addresser.ok();
+    }
+
     /// Add a ChatAdapter to the bot
     ///
     /// Add as many adapters as you like. The IncomingMessages sent by adapters are made available
