@@ -3,6 +3,26 @@ use std::sync::mpsc::channel;
 
 use adapter::ChatAdapter;
 use handler::MessageHandler;
+use message::IncomingMessage;
+
+fn dispatch(handlers: &Vec<Box<MessageHandler>>, msg: &IncomingMessage) {
+    let msg_str = msg.get_contents();
+
+    for handler in handlers {
+        if handler.can_handle(msg_str) {
+            match handler.handle(msg) {
+                Err(e) => {
+                    println!("Error in handler `{}`", handler.name());
+                    println!("{:?}", e);
+                    println!("The incoming message was {}", msg_str);
+
+                    // TODO remove handler?
+                },
+                _ => ()
+            }
+        }
+    }
+}
 
 /// The Chatbot is the central data structure of the chatbot platform. It contains a `run` method
 /// which listens for messages from adapters and routes them to handlers. Any program which uses
@@ -101,29 +121,14 @@ impl Chatbot {
                 Ok(msg) => msg,
                 Err(_) => break
             };
-            let msg_str = msg.get_contents();
 
-            let handlers = if self.addresser.is_match(msg_str) {
-                &self.addressed_handlers
-            } else {
-                &self.handlers
-            };
-
-            // Distribute to handlers
-            for handler in handlers {
-                if handler.can_handle(msg_str) {
-                    match handler.handle(&msg) {
-                        Err(e) => {
-                            println!("Error in handler `{}`", handler.name());
-                            println!("{:?}", e);
-                            println!("The incoming message was {}", msg_str);
-
-                            // TODO remove handler?
-                        },
-                        _ => ()
-                    }
-                }
+            // Only dispatch to addressed handlers when bot is addressed
+            if self.addresser.is_match(msg.get_contents()) {
+                dispatch(&self.addressed_handlers, &msg);
             }
+
+            // Always dispatch to global handlers
+            dispatch(&self.handlers, &msg);
         }
 
         println!("chatbot shutting down");
