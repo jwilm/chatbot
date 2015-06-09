@@ -17,6 +17,7 @@ then
     git config user.email "joe@jwilm.com"
 fi
 git checkout -b gh-pages
+echo "chatbot.rs" > CNAME
 git add -f --all .
 git commit -m "Documentation"
 git remote add origin https://github.com/jwilm/chatbot.git
