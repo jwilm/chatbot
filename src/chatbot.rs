@@ -102,12 +102,14 @@ impl Chatbot {
     /// Call process_events on all of the adapters and `recv` on the `IncomingMessage` channel.
     /// Distribute IncomingMessages to list of handlers.
     pub fn run(&self) {
+        let adapters_len = self.adapters.len();
+        let handlers_len = self.handlers.len() + self.addressed_handlers.len();
 
-        assert!(self.adapters.len() > 0);
-        assert!(self.handlers.len() > 0 || self.addressed_handlers.len() > 0);
+        assert!(adapters_len > 0);
+        assert!(handlers_len > 0);
 
-        println!("Chatbot: {} adapters", self.adapters.len());
-        println!("Chatbot: {} handlers", self.handlers.len());
+        println!("Chatbot: {} adapters", adapters_len);
+        println!("Chatbot: {} handlers", handlers_len);
 
         let (incoming_tx, incoming_rx) = channel();
 
