@@ -104,7 +104,7 @@ impl Chatbot {
     pub fn run(&self) {
 
         assert!(self.adapters.len() > 0);
-        assert!(self.handlers.len() > 0);
+        assert!(self.handlers.len() > 0 || self.addressed_handlers.len() > 0);
 
         println!("Chatbot: {} adapters", self.adapters.len());
         println!("Chatbot: {} handlers", self.handlers.len());
