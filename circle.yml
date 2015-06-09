@@ -1,6 +1,6 @@
 dependencies:
   override:
-    - curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- --channel=nightly -y
+    - curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- -y
     - cargo build
   cache_directories:
     - "~/.cargo"
@@ -8,13 +8,14 @@ dependencies:
 
 test:
   override:
-    - cargo test
+    - make test
 
 deployment:
   production:
     branch: master
     commands:
-      - sh mkdoc.sh
+      - make docs
+      - make upload-docs
 
 general:
   branches:
