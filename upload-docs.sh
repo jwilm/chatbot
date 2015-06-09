@@ -19,7 +19,7 @@ fi
 git checkout -b gh-pages
 git add -f --all .
 git commit -m "Documentation"
-git remote add origin https://github.com/jwilm/startuppong-client-rs.git
+git remote add origin https://github.com/jwilm/chatbot.git
 git push -qf origin gh-pages
 
 # Cleanup
