@@ -79,7 +79,7 @@ fn main() {
     }
 
     bot.add_handler(ping);
-    bot.add_handler(trout);
+    bot.add_addressed_handler(trout);
     bot.add_handler(echo);
     bot.add_handler(GithubIssueLinker::new());
 

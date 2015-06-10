@@ -73,6 +73,31 @@
 //! # }
 //! ```
 //!
+//! Sometimes you might want the bot to react only when it is addressed,
+//! this is what
+//! [`add_addressed_handler`](chatbot/struct.Chatbot.html#method.add_addressed_handler) is for.
+//!
+//! An example would be a bot that responses to pings, only you don't want the bot to respond
+//! everytime there is any form of "ping" in a sentence.
+//!
+//! ```no_run
+//! # #[macro_use(handler)]
+//! # extern crate chatbot;
+//! # fn main() {
+//! use chatbot::Chatbot;
+//! use chatbot::adapter::CliAdapter;
+//!
+//! let mut bot = Chatbot::new("pingbot");
+//!
+//! let ping = handler!("PingHandler", r"ping", |_, _| Some("pong".to_owned()));
+//!
+//! bot.add_addressed_handler(ping);
+//! bot.add_adapter(CliAdapter::new());
+//!
+//! bot.run();
+//! # }
+//! ```
+//!
 
 extern crate regex;
 extern crate hyper;
