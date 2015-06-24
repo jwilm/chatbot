@@ -115,7 +115,9 @@ impl ChatAdapter for SlackAdapter {
                             AdapterMsg::Private(_) => {
                                 println!("SlackAdaptor: Private messages not implemented");
                             }
-                            _ => unreachable!("No other messages being sent yet")
+                            AdapterMsg::Shutdown => {
+                                break
+                            }
                         }
                     },
                     Err(e) => {

@@ -116,7 +116,9 @@ impl ChatAdapter for IrcAdapter {
                                 let user = incoming.user().unwrap();
                                 server.send_privmsg(user, m.as_ref()).unwrap()
                             }
-                            _ => unreachable!("No other messages being sent yet")
+                            AdapterMsg::Shutdown => {
+                                break
+                            }
                         }
                     },
                     Err(e) => {
