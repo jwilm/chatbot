@@ -16,6 +16,8 @@ use std::sync::mpsc::SendError;
 pub enum AdapterMsg {
     /// A message that should be sent to a chat provider
     Outgoing(OutgoingMessage),
+    /// A message that will be sent to the user in private
+    Private(OutgoingMessage),
     /// The chatbot is shutting down and the adapters should nicely terminate their connections.
     Shutdown
 }
@@ -102,6 +104,12 @@ impl IncomingMessage {
     pub fn reply(&self, msg: String) -> Result<(), SendError<AdapterMsg>> {
         let outgoing = OutgoingMessage::new(msg, self.to_owned());
         self.tx.send(AdapterMsg::Outgoing(outgoing))
+    }
+
+    /// Reply to a message in a private message
+    pub fn reply_private(&self, msg: String) -> Result<(), SendError<AdapterMsg>> {
+        let outgoing = OutgoingMessage::new(msg, self.to_owned());
+        self.tx.send(AdapterMsg::Private(outgoing))
     }
 }
 
