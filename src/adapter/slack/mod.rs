@@ -111,7 +111,13 @@ impl ChatAdapter for SlackAdapter {
                                 let out = OutgoingEvent::new(id, m);
                                 slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
                             }
-                            _ => unreachable!("No other messages being sent yet")
+                            // Not implemented for now
+                            AdapterMsg::Private(_) => {
+                                println!("SlackAdaptor: Private messages not implemented");
+                            }
+                            AdapterMsg::Shutdown => {
+                                break
+                            }
                         }
                     },
                     Err(e) => {
