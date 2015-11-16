@@ -41,40 +41,44 @@ impl ChatAdapter for CliAdapter {
 
         // Read from stdin and send messages to the main loop
         thread::Builder::new().name("Chatbot CLI Reader".to_owned()).spawn(move || {
-            loop {
-                let mut line = String::new();
-                match io::stdin().read_line(&mut line) {
-                    Ok(len) => {
-                        if len == 0 {
+            abort_on_panic!("Chatbot CLI Reader aborting", {
+                loop {
+                    let mut line = String::new();
+                    match io::stdin().read_line(&mut line) {
+                        Ok(len) => {
+                            if len == 0 {
+                                break;
+                            }
+                            let msg = IncomingMessage::new(name.to_owned(), None, None, None, line,
+                                tx_outgoing.to_owned());
+                            tx_incoming.send(msg).unwrap();
+                        },
+                        Err(e) => {
+                            println!("{:?}", e);
                             break;
                         }
-                        let msg = IncomingMessage::new(name.to_owned(), None, None, None, line,
-                            tx_outgoing.to_owned());
-                        tx_incoming.send(msg).unwrap();
-                    },
-                    Err(e) => {
-                        println!("{:?}", e);
-                        break;
-                    }
-                };
-            }
-
-            println!("CliAdapter: shutting down");
+                    };
+                }
+                
+                println!("CliAdapter: shutting down");
+            });
         }).ok().expect("failed to create stdio reader");
 
         // process messages from the main loop
         thread::Builder::new().name("Chatbot CLI".to_owned()).spawn(move || {
-            loop {
-                // TODO don't blindly unwrap
-                match rx_outgoing.recv().unwrap() {
-                    AdapterMsg::Outgoing(msg) => {
-                        io::stdout().write(msg.as_bytes()).unwrap();
-                        io::stdout().write(b"\n").unwrap();
-                        io::stdout().flush().unwrap();
-                    },
-                    _ => break
+            abort_on_panic!("Chatbot CLI aborting", {
+                loop {
+                    // TODO don't blindly unwrap
+                    match rx_outgoing.recv().unwrap() {
+                        AdapterMsg::Outgoing(msg) => {
+                            io::stdout().write(msg.as_bytes()).unwrap();
+                            io::stdout().write(b"\n").unwrap();
+                            io::stdout().flush().unwrap();
+                        },
+                        _ => break
+                    }
                 }
-            }
+            });
         }).ok().expect("failed to create stdio <-> chatbot proxy");
 
     }

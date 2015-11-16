@@ -99,6 +99,8 @@
 //! ```
 //!
 
+#[macro_use]
+extern crate abort_on_panic;
 extern crate regex;
 extern crate hyper;
 extern crate rustc_serialize;

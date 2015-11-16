@@ -93,39 +93,43 @@ impl ChatAdapter for SlackAdapter {
         let slack_tx = cli.get_outs().unwrap();
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
-            let mut handler = MyHandler {
-                count: 0,
-                tx_incoming: tx_incoming,
-                tx_outgoing: tx_outgoing
-            };
-            cli.run::<MyHandler>(&mut handler, client, slack_rx).unwrap();
+            abort_on_panic!("Chatbot Slack Receiver aborting", {
+                let mut handler = MyHandler {
+                    count: 0,
+                    tx_incoming: tx_incoming,
+                    tx_outgoing: tx_outgoing
+                };
+                cli.run::<MyHandler>(&mut handler, client, slack_rx).unwrap();
+            });
         }).ok().expect("failed to create thread for slack receiver");
 
         thread::Builder::new().name("Chatbot Slack Sender".to_owned()).spawn(move || {
-            loop {
-                match rx_outgoing.recv() {
-                    Ok(msg) => {
-                        match msg {
-                            AdapterMsg::Outgoing(m) => {
-                                let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
-                                let out = OutgoingEvent::new(id, m);
-                                slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
+            abort_on_panic!("Chatbot Slack Sender", {
+                loop {
+                    match rx_outgoing.recv() {
+                        Ok(msg) => {
+                            match msg {
+                                AdapterMsg::Outgoing(m) => {
+                                    let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
+                                    let out = OutgoingEvent::new(id, m);
+                                    slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
+                                }
+                                // Not implemented for now
+                                AdapterMsg::Private(_) => {
+                                    println!("SlackAdaptor: Private messages not implemented");
+                                }
+                                AdapterMsg::Shutdown => {
+                                    break
+                                }
                             }
-                            // Not implemented for now
-                            AdapterMsg::Private(_) => {
-                                println!("SlackAdaptor: Private messages not implemented");
-                            }
-                            AdapterMsg::Shutdown => {
-                                break
-                            }
+                        },
+                        Err(e) => {
+                            println!("error receiving outgoing messages: {}", e);
+                            break
                         }
-                    },
-                    Err(e) => {
-                        println!("error receiving outgoing messages: {}", e);
-                        break
                     }
                 }
-            }
+            });
         }).ok().expect("failed to create thread for slack sender");
     }
 }
