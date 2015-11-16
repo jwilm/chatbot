@@ -1,0 +1,23 @@
+dependencies:
+  override:
+    - curl -sSf https://static.rust-lang.org/rustup.sh | sh -s -- -y
+    - cargo build
+  cache_directories:
+    - "~/.cargo"
+    - "target"
+
+test:
+  override:
+    - make test
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - make docs
+      - make upload-docs
+
+general:
+  branches:
+    ignore:
+      - gh-pages

@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["account_from_env","Try and create an account from environment variables"]],"struct":[["AddMatch","Add startuppong.com matches from chat"],["PrintLadder","Startuppong.com get_players handler"]],"type":[["Account",""]]});

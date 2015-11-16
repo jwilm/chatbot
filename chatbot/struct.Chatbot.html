@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Chatbot` struct in crate `chatbot`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Chatbot">
+
+    <title>chatbot::Chatbot - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>chatbot</a></p><script>window.sidebarCurrent = {name: 'Chatbot', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>chatbot</a>::<wbr><a class='struct' href=''>Chatbot</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-3811' class='srclink' href='../src/chatbot/chatbot.rs.html#31-37' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Chatbot {
+    // some fields omitted
+}</pre><div class='docblock'><p>The Chatbot is the central data structure of the chatbot platform. It contains a <code>run</code> method
+which listens for messages from adapters and routes them to handlers. Any program which uses
+chatbot will need to minimally create a Chatbot, add an adapter, add a handler, and call Chatbot
+<a href="chatbot/struct.Chatbot.html#method.run"><code>run</code></a>.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../chatbot/struct.Chatbot.html' title='chatbot::Chatbot'>Chatbot</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>(name: &amp;<a href='https://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a>) -&gt; <a class='struct' href='../chatbot/struct.Chatbot.html' title='chatbot::Chatbot'>Chatbot</a></code></h4>
+<div class='docblock'><p>Create a new chatbot instance.</p>
+
+<p>The name provided here will be used for message filtering and in handlers for whatever they
+want. You&#39;ll want to make your binding mutable so you can call <code>add_adapter</code> and
+<code>add_handler</code>.</p>
+</div><h4 id='method.get_name' class='method'><code>fn <a href='#method.get_name' class='fnname'>get_name</a>(&amp;self) -&gt; &amp;<a href='https://doc.rust-lang.org/nightly/std/primitive.str.html'>str</a></code></h4>
+<div class='docblock'><p>Return the name provided in initialization</p>
+</div><h4 id='method.get_addresser' class='method'><code>fn <a href='#method.get_addresser' class='fnname'>get_addresser</a>(&amp;self) -&gt; &amp;<a class='enum' href='http://doc.rust-lang.org/regex/regex/re/enum.Regex.html' title='regex::re::Regex'>Regex</a></code></h4>
+<div class='docblock'><p>Return the regular expression of what the bot will be addressed by</p>
+</div><h4 id='method.add_adapter' class='method'><code>fn <a href='#method.add_adapter' class='fnname'>add_adapter</a>&lt;T&gt;(&amp;mut self, adapter: T) <span class='where'>where T: <a class='trait' href='../chatbot/adapter/trait.ChatAdapter.html' title='chatbot::adapter::ChatAdapter'>ChatAdapter</a> + 'static</span></code></h4>
+<div class='docblock'><p>Add a ChatAdapter to the bot</p>
+
+<p>Add as many adapters as you like. The IncomingMessages sent by adapters are made available
+to all handlers regardless of how many adapters exist. The IncomingMessage.reply method
+makes sure the response is sent back to the adapter from whence the message came.</p>
+</div><h4 id='method.add_handler' class='method'><code>fn <a href='#method.add_handler' class='fnname'>add_handler</a>&lt;T&gt;(&amp;mut self, handler: T) <span class='where'>where T: <a class='trait' href='../chatbot/handler/trait.MessageHandler.html' title='chatbot::handler::MessageHandler'>MessageHandler</a> + 'static</span></code></h4>
+<div class='docblock'><p>Add a MessageHandler to the bot</p>
+
+<p>The more handlers you have the more useful your bot becomes (for potentially loose
+definitions of useful :P). Check out the handler! macro for making simple handlers and also
+see the <code>MessageHandler</code> implementors section for a list of built in handlers.</p>
+</div><h4 id='method.add_addressed_handler' class='method'><code>fn <a href='#method.add_addressed_handler' class='fnname'>add_addressed_handler</a>&lt;T&gt;(&amp;mut self, handler: T) <span class='where'>where T: <a class='trait' href='../chatbot/handler/trait.MessageHandler.html' title='chatbot::handler::MessageHandler'>MessageHandler</a> + 'static</span></code></h4>
+<div class='docblock'><p>Add a MessageHandler, that requires the bot to be addressed, to the bot</p>
+</div><h4 id='method.run' class='method'><code>fn <a href='#method.run' class='fnname'>run</a>(&amp;self)</code></h4>
+<div class='docblock'><p>Start processing messages</p>
+
+<p>Call process_events on all of the adapters and <code>recv</code> on the <code>IncomingMessage</code> channel.
+Distribute IncomingMessages to list of handlers.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "chatbot";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script async src="../search-index.js"></script>
+</body>
+</html>

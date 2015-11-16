@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SlackAdapter","SlackAdapter sends and receives messages from the Slack chat service. Until actualy configuration is added, the slack token should be placed in the environment variable `SLACK_BOT_TOKEN`"]]});

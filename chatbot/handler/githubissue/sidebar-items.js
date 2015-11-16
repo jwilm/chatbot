@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["GithubIssueLinker","Respond to github issue links with the title and hyperlink"]]});

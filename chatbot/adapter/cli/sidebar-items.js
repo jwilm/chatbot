@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CliAdapter","The CliAdapter reads lines from stdin and dispatches them as IncomingMessages to the chatbot.  Replies are printed to stdout. There is currently no extra configuration available to the CliAdapter."]]});

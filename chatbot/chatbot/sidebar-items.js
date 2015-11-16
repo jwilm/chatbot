@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Chatbot","The Chatbot is the central data structure of the chatbot platform. It contains a `run` method which listens for messages from adapters and routes them to handlers. Any program which uses chatbot will need to minimally create a Chatbot, add an adapter, add a handler, and call Chatbot `run`."]]});
