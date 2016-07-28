@@ -16,8 +16,8 @@ path = "src/main.rs"
 
 [dependencies]
 abort_on_panic = "1.0.0"
-regex = "~0.1"
-rustc-serialize = "~0.3"
-slack = "~0.6"
-getopts = "~0.2"
-irc = "~0.8"
+regex = "0.1"
+rustc-serialize = "0.3"
+slack =  { git = "https://github.com/jwilm/slack-rs", rev = "async-sender" }
+getopts = "0.2"
+irc = "0.11"

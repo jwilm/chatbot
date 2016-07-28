@@ -1,17 +1,14 @@
-extern crate slack;
-
 mod message;
 use self::message::*;
 
 use std::env;
-use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 use std::thread;
 
 use rustc_serialize::json::ToJson;
 
-use slack::Message;
+use slack;
 
 use chatbot::Chatbot;
 use adapter::ChatAdapter;
@@ -43,8 +40,12 @@ struct MyHandler {
 }
 
 #[allow(unused_variables)]
-impl slack::MessageHandler for MyHandler {
-    fn on_receive(&mut self, cli: &mut slack::RtmClient, raw: &str) {
+impl slack::EventHandler for MyHandler {
+    fn on_event(&mut self,
+                cli: &mut slack::RtmClient,
+                event: Result<&slack::Event, slack::Error>,
+                raw: &str)
+    {
         println!("Received[{}]: {}", self.count, raw.to_string());
         self.count = self.count + 1;
 
@@ -86,11 +87,10 @@ impl ChatAdapter for SlackAdapter {
         println!("SlackAdapter: process_events");
         let (tx_outgoing, rx_outgoing) = channel();
 
-        let uid = AtomicIsize::new(0);
+        let mut cli = slack::RtmClient::new(&self.token[..]);
 
-        let mut cli = slack::RtmClient::new();
-        let (client, slack_rx) = cli.login(self.token.as_ref()).unwrap();
-        let slack_tx = cli.get_outs().unwrap();
+        let (client, slack_rx) = cli.login().expect("login to slack");
+        let slack_tx = cli.channel().expect("get a slack sender");
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
             abort_on_panic!("Chatbot Slack Receiver aborting", {
@@ -99,7 +99,7 @@ impl ChatAdapter for SlackAdapter {
                     tx_incoming: tx_incoming,
                     tx_outgoing: tx_outgoing
                 };
-                cli.run::<MyHandler>(&mut handler, client, slack_rx).unwrap();
+                cli.run(&mut handler, client, slack_rx).expect("run connector ok");
             });
         }).ok().expect("failed to create thread for slack receiver");
 
@@ -110,9 +110,10 @@ impl ChatAdapter for SlackAdapter {
                         Ok(msg) => {
                             match msg {
                                 AdapterMsg::Outgoing(m) => {
-                                    let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
+                                    let id = slack_tx.get_msg_uid() as i64;
                                     let out = OutgoingEvent::new(id, m);
-                                    slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
+                                    slack_tx.send(out.to_json().to_string().as_ref())
+                                            .expect("send message ok");
                                 }
                                 // Not implemented for now
                                 AdapterMsg::Private(_) => {

@@ -1,6 +1,5 @@
 extern crate irc;
 
-use std::sync::Arc;
 use std::thread;
 
 pub type IrcConfig = irc::client::data::Config;
@@ -58,7 +57,7 @@ impl ChatAdapter for IrcAdapter {
     }
 
     fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
-        let server = Arc::new(IrcServer::from_config(self.config.clone()).unwrap());
+        let server = IrcServer::from_config(self.config.clone()).unwrap();
         server.identify().unwrap();
 
         let (tx_outgoing, rx_outgoing) = channel();
@@ -75,20 +74,18 @@ impl ChatAdapter for IrcAdapter {
 
                         let msg = message.unwrap();
 
-                        let user = msg.get_source_nickname().map(|user| user.to_owned());
-                        if let Ok(command) = Command::from_message(&msg) {
-                            match command {
-                                Command::PRIVMSG(ref chan, ref msg) => {
-                                    let incoming = IncomingMessage::new("IrcAdapter".to_owned(),
-                                        Some(server.config().server().to_owned()),
-                                        Some(chan.to_owned()), user, msg.to_owned(),
-                                        tx_outgoing.clone());
+                        let user = msg.source_nickname().map(|user| user.to_owned());
+                        match msg.command {
+                            Command::PRIVMSG(ref chan, ref msg) => {
+                                let incoming = IncomingMessage::new("IrcAdapter".to_owned(),
+                                    Some(server.config().server().to_owned()),
+                                    Some(chan.to_owned()), user, msg.to_owned(),
+                                    tx_outgoing.clone());
 
-                                    tx_incoming.send(incoming)
-                                        .ok().expect("chatbot not receiving messages");
-                                },
-                                _ => ()
-                            }
+                                tx_incoming.send(incoming)
+                                    .ok().expect("chatbot not receiving messages");
+                            },
+                            _ => ()
                         }
                     }
                 });
