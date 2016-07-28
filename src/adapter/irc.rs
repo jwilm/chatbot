@@ -1,8 +1,6 @@
-extern crate irc;
-
 use std::thread;
 
-pub type IrcConfig = irc::client::data::Config;
+pub type IrcConfig = ::irc::client::data::Config;
 
 use irc::client::data::Command;
 use irc::client::server::IrcServer;

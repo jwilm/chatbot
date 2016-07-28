@@ -8,11 +8,16 @@ use chatbot::Chatbot;
 mod cli;
 pub use self::cli::CliAdapter;
 
+#[cfg(feature = "slack-adapter")]
 mod slack;
+#[cfg(feature = "slack-adapter")]
 pub use self::slack::SlackAdapter;
 
+#[cfg(feature = "irc-adapter")]
 mod irc;
+#[cfg(feature = "irc-adapter")]
 pub use self::irc::IrcAdapter;
+#[cfg(feature = "irc-adapter")]
 pub use self::irc::IrcConfig;
 
 /// Chatbot is extensible in both message sources and command handling. To add a
