@@ -9,11 +9,6 @@ repository = "https://github.com/jwilm/chatbot"
 keywords = ["chat", "bot", "extensible"]
 readme = "README.md"
 
-[[bin]]
-doc = false
-name = "chatbot"
-path = "src/main.rs"
-
 [dependencies]
 abort_on_panic = "1.0.0"
 regex = "0.1"

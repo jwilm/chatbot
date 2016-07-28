@@ -10,9 +10,7 @@ use chatbot::adapter::{CliAdapter, SlackAdapter, IrcAdapter};
 use getopts::Options;
 use getopts::ParsingStyle;
 
-#[allow(dead_code)]
 fn main() {
-
     let args = env::args().collect::<Vec<String>>();
     let mut opts = Options::new();
     opts.parsing_style(ParsingStyle::StopAtFirstFree);
