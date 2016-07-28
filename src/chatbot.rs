@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use std::sync::mpsc::channel;
 
 use adapter::ChatAdapter;
@@ -43,8 +43,10 @@ impl Chatbot {
     /// want. You'll want to make your binding mutable so you can call `add_adapter` and
     /// `add_handler`.
     pub fn new(name: &str) -> Chatbot {
-        let addresser_str = format!(r"^\s*@?{}[:,\s]\s*", name);
-        let addresser = Regex::new(addresser_str.as_ref());
+        let addresser_str = format!(r"^\s*@?{}:?", name);
+        let addresser = RegexBuilder::new(&addresser_str[..])
+                                     .case_insensitive(true)
+                                     .compile();
 
         Chatbot {
             name: name.to_owned(),
