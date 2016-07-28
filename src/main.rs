@@ -6,8 +6,6 @@ use std::env;
 
 use chatbot::Chatbot;
 use chatbot::adapter::{CliAdapter, SlackAdapter, IrcAdapter};
-use chatbot::handler::GithubIssueLinker;
-use chatbot::handler::sup::{self, PrintLadder, AddMatch};
 
 use getopts::Options;
 use getopts::ParsingStyle;
@@ -63,25 +61,9 @@ fn main() {
         matches.name("msg").map(|msg| { msg.to_owned() })
     });
 
-
-    // Add ping pong leaderboard handlers if environment variables are set
-    let sup_account = sup::account_from_env();
-    match sup_account {
-        Ok(account) => {
-            let account2 = sup::Account::new(account.id().to_string(), account.key().to_string());
-            let list_handler = PrintLadder::new(account, 5);
-            bot.add_handler(list_handler);
-
-            let add_handler = AddMatch::new(account2);
-            bot.add_handler(add_handler);
-        }
-        _ => ()
-    }
-
     bot.add_handler(ping);
     bot.add_addressed_handler(trout);
     bot.add_handler(echo);
-    bot.add_handler(GithubIssueLinker::new());
 
     bot.run();
 }

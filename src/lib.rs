@@ -102,11 +102,9 @@
 #[macro_use]
 extern crate abort_on_panic;
 extern crate regex;
-extern crate hyper;
 extern crate rustc_serialize;
 extern crate slack;
 extern crate irc;
-extern crate startuppong;
 
 /// Shorthand for creating a `Regex` as suggested by the regex crate. You probably don't need to
 /// `macro_use` this unless you're creating handlers in an external module.

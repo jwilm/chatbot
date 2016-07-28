@@ -9,11 +9,6 @@ use std::sync::mpsc::SendError;
 use regex::Regex;
 use regex::Captures;
 
-mod githubissue;
-pub use self::githubissue::GithubIssueLinker;
-
-pub mod sup;
-
 use message::IncomingMessage;
 use message::AdapterMsg;
 
