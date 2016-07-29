@@ -6,7 +6,6 @@ use std::thread;
 use regex::Regex;
 
 use adapter::ChatAdapter;
-use chatbot::Chatbot;
 use message::AdapterMsg;
 use message::IncomingMessage;
 

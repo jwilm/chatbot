@@ -1,6 +1,7 @@
 mod message;
 use self::message::*;
 
+use std::collections::HashMap;
 use std::env;
 use std::sync::mpsc::{self, Sender, channel};
 use std::thread;
@@ -10,7 +11,6 @@ use rustc_serialize::json::ToJson;
 use slack;
 use regex::Regex;
 
-use chatbot::Chatbot;
 use adapter::ChatAdapter;
 use message::AdapterMsg;
 use message::IncomingMessage;
@@ -19,7 +19,6 @@ use message::IncomingMessage;
 /// configuration is added, the slack token should be placed in the environment variable
 /// `SLACK_BOT_TOKEN`
 pub struct SlackAdapter {
-    token: String,
     client: Option<slack::RtmClient>,
     login_state: Option<(slack::WsClient, mpsc::Receiver<slack::WsMessage>)>,
     addresser_regex: Regex,
@@ -36,7 +35,6 @@ impl SlackAdapter {
         let addresser_regex = Regex::new(format!(r"^<@{}>", id).as_str()).unwrap();
 
         SlackAdapter {
-            token: token,
             client: Some(cli),
             login_state: Some(login_state),
             addresser_regex: addresser_regex,
@@ -47,7 +45,8 @@ impl SlackAdapter {
 struct MyHandler {
   count: i64,
   tx_incoming: Sender<IncomingMessage>,
-  tx_outgoing: Sender<AdapterMsg>
+  tx_outgoing: Sender<AdapterMsg>,
+  users: HashMap<String, slack::User>,
 }
 
 #[allow(unused_variables)]
@@ -64,8 +63,12 @@ impl slack::EventHandler for MyHandler {
             Ok(slack_msg) => {
                 match slack_msg {
                     Event::Message(Msg::Plain(msg)) => {
+                        let user = self.users.get(msg.user())
+                                             .map(|u| u.name.clone())
+                                             .unwrap_or_else(|| msg.user().to_owned());
+
                         let incoming = IncomingMessage::new("SlackAdapter".to_owned(), None,
-                            Some(msg.channel().to_owned()), Some(msg.user().to_owned()),
+                            Some(msg.channel().to_owned()), Some(user),
                             msg.text().to_owned(), self.tx_outgoing.clone());
 
                         self.tx_incoming.send(incoming)
@@ -109,10 +112,15 @@ impl ChatAdapter for SlackAdapter {
         let slack_tx = cli.channel().expect("get a slack sender");
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
+            let users = cli.list_users().expect("get users list")
+                           .into_iter()
+                           .map(|u| (u.id.clone(), u))
+                           .collect();
             let mut handler = MyHandler {
                 count: 0,
                 tx_incoming: tx_incoming,
-                tx_outgoing: tx_outgoing
+                tx_outgoing: tx_outgoing,
+                users: users,
             };
             cli.run(&mut handler, client, slack_rx).expect("run connector ok");
         }).ok().expect("failed to create thread for slack receiver");

@@ -5,7 +5,6 @@ use std::sync::mpsc::Sender;
 use regex::Regex;
 
 use message::IncomingMessage;
-use chatbot::Chatbot;
 
 mod cli;
 pub use self::cli::CliAdapter;

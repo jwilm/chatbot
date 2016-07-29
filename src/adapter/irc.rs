@@ -12,7 +12,6 @@ use std::sync::mpsc::Sender;
 
 use regex::Regex;
 
-use chatbot::Chatbot;
 use adapter::ChatAdapter;
 use message::IncomingMessage;
 use message::AdapterMsg;
