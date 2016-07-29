@@ -28,8 +28,8 @@ fn main() {
 
     // Add adapter based on command line argument
     match adapter_name.as_ref() {
-        "slack" => bot.add_adapter(SlackAdapter::new()),
-        "cli" => bot.add_adapter(CliAdapter::new()),
+        "slack" => bot.add_adapter(SlackAdapter::new(name)),
+        "cli" => bot.add_adapter(CliAdapter::new(name)),
         "irc" => {
             let config = chatbot::adapter::IrcConfig {
                 nickname: Some(format!("{}", name)),
@@ -38,7 +38,7 @@ fn main() {
                 channels: Some(vec![format!("#chatbot")]),
                 .. Default::default()
             };
-            bot.add_adapter(IrcAdapter::new(config))
+            bot.add_adapter(IrcAdapter::new(config, name))
         },
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };

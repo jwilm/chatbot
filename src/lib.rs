@@ -142,3 +142,7 @@ pub mod message;
 
 mod chatbot;
 pub use chatbot::Chatbot;
+
+pub use handler::HandlerResult;
+pub use handler::MessageHandler;
+pub use message::IncomingMessage;

@@ -103,7 +103,7 @@ impl Chatbot {
     ///
     /// Call process_events on all of the adapters and `recv` on the `IncomingMessage` channel.
     /// Distribute IncomingMessages to list of handlers.
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         let adapters_len = self.adapters.len();
         let handlers_len = self.handlers.len() + self.addressed_handlers.len();
 
@@ -115,8 +115,8 @@ impl Chatbot {
 
         let (incoming_tx, incoming_rx) = channel();
 
-        for adapter in &self.adapters {
-            adapter.process_events(self, incoming_tx.clone());
+        for adapter in &mut self.adapters {
+            adapter.process_events(incoming_tx.clone());
         }
 
         loop {
@@ -126,8 +126,17 @@ impl Chatbot {
                 Err(_) => break
             };
 
+            let mut addressed = false;
+
+            // TODO this should only check the source adapter
+            for adapter in &self.adapters {
+                if adapter.addresser().is_match(msg.get_contents()) {
+                    addressed = true;
+                }
+            }
+
             // Only dispatch to addressed handlers when bot is addressed
-            if self.addresser.is_match(msg.get_contents()) {
+            if addressed {
                 dispatch(&self.addressed_handlers, &msg);
             }
 

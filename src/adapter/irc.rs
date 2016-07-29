@@ -10,6 +10,8 @@ use irc::client::server::utils::ServerExt;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 
+use regex::Regex;
+
 use chatbot::Chatbot;
 use adapter::ChatAdapter;
 use message::IncomingMessage;
@@ -38,13 +40,17 @@ use message::AdapterMsg;
 /// bot.add_adapter(irc);
 /// ```
 pub struct IrcAdapter {
-    config: IrcConfig
+    config: IrcConfig,
+    address_regex: Regex,
+    name: String,
 }
 
 impl IrcAdapter {
-    pub fn new(config: IrcConfig) -> IrcAdapter {
+    pub fn new(config: IrcConfig, bot_name: &str) -> IrcAdapter {
         IrcAdapter {
-            config: config
+            config: config,
+            address_regex: Regex::new(format!(r"^{}:", bot_name).as_str()).unwrap(),
+            name: bot_name.to_owned(),
         }
     }
 }
@@ -54,12 +60,16 @@ impl ChatAdapter for IrcAdapter {
         "IrcAdapter"
     }
 
-    fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
+    fn addresser(&self) -> &Regex {
+        &self.address_regex
+    }
+
+    fn process_events(&mut self, tx_incoming: Sender<IncomingMessage>) {
         let server = IrcServer::from_config(self.config.clone()).unwrap();
         server.identify().unwrap();
 
         let (tx_outgoing, rx_outgoing) = channel();
-        let name = bot.get_name().to_owned();
+        let name = self.name.clone();
 
         {
             let server = server.clone();

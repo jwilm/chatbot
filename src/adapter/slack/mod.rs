@@ -2,13 +2,13 @@ mod message;
 use self::message::*;
 
 use std::env;
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{self, Sender, channel};
 use std::thread;
 
 use rustc_serialize::json::ToJson;
 
 use slack;
+use regex::Regex;
 
 use chatbot::Chatbot;
 use adapter::ChatAdapter;
@@ -19,16 +19,27 @@ use message::IncomingMessage;
 /// configuration is added, the slack token should be placed in the environment variable
 /// `SLACK_BOT_TOKEN`
 pub struct SlackAdapter {
-    token: String
+    token: String,
+    client: Option<slack::RtmClient>,
+    login_state: Option<(slack::WsClient, mpsc::Receiver<slack::WsMessage>)>,
+    addresser_regex: Regex,
 }
 
 impl SlackAdapter {
     pub fn new() -> SlackAdapter {
+        let token = env::var("SLACK_BOT_TOKEN").expect("Failed to get SLACK_BOT_TOKEN from env");
+
+        let mut cli = slack::RtmClient::new(&token[..]);
+        let login_state = cli.login().expect("login to slack");
+
+        let id = cli.get_id().unwrap();
+        let addresser_regex = Regex::new(format!(r"^<@{}>", id).as_str()).unwrap();
+
         SlackAdapter {
-            token: match env::var("SLACK_BOT_TOKEN") {
-                Ok(t) => t,
-                Err(_) => panic!("Failed to get SLACK_BOT_TOKEN from env")
-            }
+            token: token,
+            client: Some(cli),
+            login_state: Some(login_state),
+            addresser_regex: addresser_regex,
         }
     }
 }
@@ -83,13 +94,18 @@ impl ChatAdapter for SlackAdapter {
         "SlackAdapter"
     }
 
-    fn process_events(&self, _: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
+    /// Check whether this adapter was addressed
+    fn addresser(&self) -> &Regex {
+        &self.addresser_regex
+    }
+
+    fn process_events(&mut self, tx_incoming: Sender<IncomingMessage>) {
         println!("SlackAdapter: process_events");
         let (tx_outgoing, rx_outgoing) = channel();
 
-        let mut cli = slack::RtmClient::new(&self.token[..]);
+        let mut cli = self.client.take().unwrap();
+        let (client, slack_rx) = self.login_state.take().unwrap();
 
-        let (client, slack_rx) = cli.login().expect("login to slack");
         let slack_tx = cli.channel().expect("get a slack sender");
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {

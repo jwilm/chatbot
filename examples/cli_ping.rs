@@ -10,7 +10,7 @@ fn main() {
     let ping = handler!("PingHandler", r"ping", |_, _| Some("pong".to_owned()));
 
     bot.add_addressed_handler(ping);
-    bot.add_adapter(CliAdapter::new());
+    bot.add_adapter(CliAdapter::new("bot"));
 
     bot.run();
 }

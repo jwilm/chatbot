@@ -2,6 +2,8 @@
 
 use std::sync::mpsc::Sender;
 
+use regex::Regex;
+
 use message::IncomingMessage;
 use chatbot::Chatbot;
 
@@ -27,11 +29,15 @@ pub trait ChatAdapter {
     /// debugging.
     fn get_name(&self) -> &str;
 
+    /// Users are addressed differently in different chat platforms. This allows the adapter to
+    /// customize detection forn the bot being addressed.
+    fn addresser(&self) -> &Regex;
+
     /// ChatAdapters must implement process_events. What this method does will
     /// vary wildly by adapter. At the very least, it must generate IncominMessages from its input,
     /// send them via the `Sender` that's passed in. The main loop has the other end of this
     /// receiver. The IncomingMessage must be constructed with a `Sender<OutgoingMessage>` for
     /// which the adapter listens on the Receiver to send messages back to the service.
-    fn process_events(&self, &Chatbot, Sender<IncomingMessage>);
+    fn process_events(&mut self, Sender<IncomingMessage>);
 }
 
