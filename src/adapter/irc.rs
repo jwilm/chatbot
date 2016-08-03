@@ -34,7 +34,7 @@ use message::AdapterMsg;
 ///     server: Some(format!("irc.mozilla.org")),
 ///     channels: Some(vec![format!("#chatbot")]),
 ///     .. Default::default()
-/// });
+/// }, name);
 ///
 /// bot.add_adapter(irc);
 /// ```

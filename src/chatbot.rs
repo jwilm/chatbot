@@ -1,4 +1,3 @@
-use regex::{Regex, RegexBuilder};
 use std::sync::mpsc::channel;
 
 use adapter::ChatAdapter;
@@ -33,7 +32,6 @@ pub struct Chatbot {
     adapters: Vec<Box<ChatAdapter>>,
     handlers: Vec<Box<MessageHandler>>,
     addressed_handlers: Vec<Box<MessageHandler>>,
-    addresser: Regex
 }
 
 impl Chatbot {
@@ -43,28 +41,17 @@ impl Chatbot {
     /// want. You'll want to make your binding mutable so you can call `add_adapter` and
     /// `add_handler`.
     pub fn new(name: &str) -> Chatbot {
-        let addresser_str = format!(r"^\s*@?{}:?", name);
-        let addresser = RegexBuilder::new(&addresser_str[..])
-                                     .case_insensitive(true)
-                                     .compile();
-
         Chatbot {
             name: name.to_owned(),
             adapters: Vec::new(),
             handlers: Vec::new(),
             addressed_handlers: Vec::new(),
-            addresser: addresser.unwrap()
         }
     }
 
     /// Return the name provided in initialization
     pub fn get_name(&self) -> &str {
         self.name.as_ref()
-    }
-
-    /// Return the regular expression of what the bot will be addressed by
-    pub fn get_addresser(&self) -> &Regex {
-        &self.addresser
     }
 
     /// Add a ChatAdapter to the bot
@@ -153,58 +140,27 @@ mod tests {
     use chatbot::Chatbot;
     use adapter::CliAdapter;
 
+    static NAME: &'static str = "testbot";
+
     #[test]
     fn test_create_chatbot() {
-        let name = "testbot";
-        let bot = Chatbot::new("testbot");
-        assert_eq!(bot.get_name(), name);
+        let bot = Chatbot::new(NAME);
+        assert_eq!(bot.get_name(), NAME);
     }
 
     #[test]
     fn test_chatbot_add_adapter() {
-        let mut bot = Chatbot::new("testbot");
-        let cli = CliAdapter::new();
+        let mut bot = Chatbot::new(NAME);
+        let cli = CliAdapter::new(NAME);
         bot.add_adapter(cli);
     }
 
     #[test]
     fn test_chatbot_add_handler() {
-        let mut bot = Chatbot::new("testbot");
+        let mut bot = Chatbot::new(NAME);
         let echo = handler!("EchoHandler", r"echo .+", |_, msg| {
             Some(msg.to_owned())
         });
         bot.add_handler(echo);
-    }
-
-    #[test]
-    fn test_chatbot_address_matches() {
-        let bot = Chatbot::new("testbot");
-        let addresser = bot.get_addresser();
-
-        assert!(!addresser.is_match("testbotping"),
-                "Shouldn't match bot name without a break (space, colon, comma)");
-        assert!(!addresser.is_match("@testbotping"),
-                "Shouldn't match bot name with '@' sign minus a break (space, colon, comma)");
-
-        // Space separation
-        assert!(addresser.is_match("testbot ping"), "Should match bot name with space");
-        assert!(addresser.is_match("@testbot ping"),
-                "Should match bot name with '@' sign plus '@' space");
-
-        // Colon separation
-        assert!(addresser.is_match("testbot:ping"), "Should match bot name with colon");
-        assert!(addresser.is_match("testbot: ping"), "Should match bot name with colon and space");
-        assert!(addresser.is_match("@testbot:ping"),
-                "Should match bot name with '@' sign plus colon");
-        assert!(addresser.is_match("@testbot: ping"),
-                "Should match bot name with '@' sign plus colon and space");
-
-        // Comma separation
-        assert!(addresser.is_match("testbot,ping"), "Should match bot name with comma");
-        assert!(addresser.is_match("testbot, ping"), "Should match bot name with comma and space");
-        assert!(addresser.is_match("@testbot,ping"),
-                "Should match bot name with '@' sign plus comma");
-        assert!(addresser.is_match("@testbot, ping"),
-                "Should match bot name with '@' sign plus comma and space");
     }
 }
