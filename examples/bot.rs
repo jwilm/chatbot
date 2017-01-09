@@ -6,15 +6,11 @@ use std::env;
 
 use chatbot::Chatbot;
 use chatbot::adapter::{CliAdapter, SlackAdapter, IrcAdapter};
-use chatbot::handler::GithubIssueLinker;
-use chatbot::handler::sup::{self, PrintLadder, AddMatch};
 
 use getopts::Options;
 use getopts::ParsingStyle;
 
-#[allow(dead_code)]
 fn main() {
-
     let args = env::args().collect::<Vec<String>>();
     let mut opts = Options::new();
     opts.parsing_style(ParsingStyle::StopAtFirstFree);
@@ -33,7 +29,7 @@ fn main() {
     // Add adapter based on command line argument
     match adapter_name.as_ref() {
         "slack" => bot.add_adapter(SlackAdapter::new()),
-        "cli" => bot.add_adapter(CliAdapter::new()),
+        "cli" => bot.add_adapter(CliAdapter::new(name)),
         "irc" => {
             let config = chatbot::adapter::IrcConfig {
                 nickname: Some(format!("{}", name)),
@@ -42,7 +38,7 @@ fn main() {
                 channels: Some(vec![format!("#chatbot")]),
                 .. Default::default()
             };
-            bot.add_adapter(IrcAdapter::new(config))
+            bot.add_adapter(IrcAdapter::new(config, name))
         },
         _ => panic!("Unexpected adapter name. Use 'cli' or 'slack'.")
     };
@@ -63,25 +59,9 @@ fn main() {
         matches.name("msg").map(|msg| { msg.to_owned() })
     });
 
-
-    // Add ping pong leaderboard handlers if environment variables are set
-    let sup_account = sup::account_from_env();
-    match sup_account {
-        Ok(account) => {
-            let account2 = sup::Account::new(account.id().to_string(), account.key().to_string());
-            let list_handler = PrintLadder::new(account, 5);
-            bot.add_handler(list_handler);
-
-            let add_handler = AddMatch::new(account2);
-            bot.add_handler(add_handler);
-        }
-        _ => ()
-    }
-
     bot.add_handler(ping);
     bot.add_addressed_handler(trout);
     bot.add_handler(echo);
-    bot.add_handler(GithubIssueLinker::new());
 
     bot.run();
 }

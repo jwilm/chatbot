@@ -3,7 +3,7 @@ chatbot
 
 An extensible chatbot written in rust.
 
-[![Circle CI](https://circleci.com/gh/jwilm/chatbot.svg?style=svg)](https://circleci.com/gh/jwilm/chatbot)
+[![Build Status](https://travis-ci.org/jwilm/chatbot.svg?branch=master)](https://travis-ci.org/jwilm/chatbot)
 
 ## About
 

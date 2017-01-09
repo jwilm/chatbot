@@ -1,19 +1,16 @@
-extern crate slack;
-
 mod message;
 use self::message::*;
 
+use std::collections::HashMap;
 use std::env;
-use std::sync::atomic::{AtomicIsize, Ordering};
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{self, Sender, channel};
 use std::thread;
 
 use rustc_serialize::json::ToJson;
 
-use slack::Message;
+use slack;
+use regex::Regex;
 
-use chatbot::Chatbot;
 use adapter::ChatAdapter;
 use message::AdapterMsg;
 use message::IncomingMessage;
@@ -22,16 +19,25 @@ use message::IncomingMessage;
 /// configuration is added, the slack token should be placed in the environment variable
 /// `SLACK_BOT_TOKEN`
 pub struct SlackAdapter {
-    token: String
+    client: Option<slack::RtmClient>,
+    login_state: Option<(slack::WsClient, mpsc::Receiver<slack::WsMessage>)>,
+    addresser_regex: Regex,
 }
 
 impl SlackAdapter {
     pub fn new() -> SlackAdapter {
+        let token = env::var("SLACK_BOT_TOKEN").expect("Failed to get SLACK_BOT_TOKEN from env");
+
+        let mut cli = slack::RtmClient::new(&token[..]);
+        let login_state = cli.login().expect("login to slack");
+
+        let id = cli.get_id().unwrap();
+        let addresser_regex = Regex::new(format!(r"^<@{}>", id).as_str()).unwrap();
+
         SlackAdapter {
-            token: match env::var("SLACK_BOT_TOKEN") {
-                Ok(t) => t,
-                Err(_) => panic!("Failed to get SLACK_BOT_TOKEN from env")
-            }
+            client: Some(cli),
+            login_state: Some(login_state),
+            addresser_regex: addresser_regex,
         }
     }
 }
@@ -39,12 +45,17 @@ impl SlackAdapter {
 struct MyHandler {
   count: i64,
   tx_incoming: Sender<IncomingMessage>,
-  tx_outgoing: Sender<AdapterMsg>
+  tx_outgoing: Sender<AdapterMsg>,
+  users: HashMap<String, slack::User>,
 }
 
 #[allow(unused_variables)]
-impl slack::MessageHandler for MyHandler {
-    fn on_receive(&mut self, cli: &mut slack::RtmClient, raw: &str) {
+impl slack::EventHandler for MyHandler {
+    fn on_event(&mut self,
+                cli: &mut slack::RtmClient,
+                event: Result<&slack::Event, slack::Error>,
+                raw: &str)
+    {
         println!("Received[{}]: {}", self.count, raw.to_string());
         self.count = self.count + 1;
 
@@ -52,8 +63,12 @@ impl slack::MessageHandler for MyHandler {
             Ok(slack_msg) => {
                 match slack_msg {
                     Event::Message(Msg::Plain(msg)) => {
+                        let user = self.users.get(msg.user())
+                                             .map(|u| u.name.clone())
+                                             .unwrap_or_else(|| msg.user().to_owned());
+
                         let incoming = IncomingMessage::new("SlackAdapter".to_owned(), None,
-                            Some(msg.channel().to_owned()), Some(msg.user().to_owned()),
+                            Some(msg.channel().to_owned()), Some(user),
                             msg.text().to_owned(), self.tx_outgoing.clone());
 
                         self.tx_incoming.send(incoming)
@@ -82,54 +97,60 @@ impl ChatAdapter for SlackAdapter {
         "SlackAdapter"
     }
 
-    fn process_events(&self, _: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
+    /// Check whether this adapter was addressed
+    fn addresser(&self) -> &Regex {
+        &self.addresser_regex
+    }
+
+    fn process_events(&mut self, tx_incoming: Sender<IncomingMessage>) {
         println!("SlackAdapter: process_events");
         let (tx_outgoing, rx_outgoing) = channel();
 
-        let uid = AtomicIsize::new(0);
+        let mut cli = self.client.take().unwrap();
+        let (client, slack_rx) = self.login_state.take().unwrap();
 
-        let mut cli = slack::RtmClient::new();
-        let (client, slack_rx) = cli.login(self.token.as_ref()).unwrap();
-        let slack_tx = cli.get_outs().unwrap();
+        let slack_tx = cli.channel().expect("get a slack sender");
 
         thread::Builder::new().name("Chatbot Slack Receiver".to_owned()).spawn(move || {
-            abort_on_panic!("Chatbot Slack Receiver aborting", {
-                let mut handler = MyHandler {
-                    count: 0,
-                    tx_incoming: tx_incoming,
-                    tx_outgoing: tx_outgoing
-                };
-                cli.run::<MyHandler>(&mut handler, client, slack_rx).unwrap();
-            });
+            let users = cli.list_users().expect("get users list")
+                           .into_iter()
+                           .map(|u| (u.id.clone(), u))
+                           .collect();
+            let mut handler = MyHandler {
+                count: 0,
+                tx_incoming: tx_incoming,
+                tx_outgoing: tx_outgoing,
+                users: users,
+            };
+            cli.run(&mut handler, client, slack_rx).expect("run connector ok");
         }).ok().expect("failed to create thread for slack receiver");
 
         thread::Builder::new().name("Chatbot Slack Sender".to_owned()).spawn(move || {
-            abort_on_panic!("Chatbot Slack Sender", {
-                loop {
-                    match rx_outgoing.recv() {
-                        Ok(msg) => {
-                            match msg {
-                                AdapterMsg::Outgoing(m) => {
-                                    let id = uid.fetch_add(1, Ordering::SeqCst) as i64;
-                                    let out = OutgoingEvent::new(id, m);
-                                    slack_tx.send(Message::Text(out.to_json().to_string())).unwrap();
-                                }
-                                // Not implemented for now
-                                AdapterMsg::Private(_) => {
-                                    println!("SlackAdaptor: Private messages not implemented");
-                                }
-                                AdapterMsg::Shutdown => {
-                                    break
-                                }
+            loop {
+                match rx_outgoing.recv() {
+                    Ok(msg) => {
+                        match msg {
+                            AdapterMsg::Outgoing(m) => {
+                                let id = slack_tx.get_msg_uid() as i64;
+                                let out = OutgoingEvent::new(id, m);
+                                slack_tx.send(out.to_json().to_string().as_ref())
+                                        .expect("send message ok");
                             }
-                        },
-                        Err(e) => {
-                            println!("error receiving outgoing messages: {}", e);
-                            break
+                            // Not implemented for now
+                            AdapterMsg::Private(_) => {
+                                println!("SlackAdaptor: Private messages not implemented");
+                            }
+                            AdapterMsg::Shutdown => {
+                                break
+                            }
                         }
+                    },
+                    Err(e) => {
+                        println!("error receiving outgoing messages: {}", e);
+                        break
                     }
                 }
-            });
+            }
         }).ok().expect("failed to create thread for slack sender");
     }
 }

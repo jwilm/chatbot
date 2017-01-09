@@ -67,7 +67,7 @@
 //! });
 //!
 //! bot.add_handler(echo);
-//! bot.add_adapter(CliAdapter::new());
+//! bot.add_adapter(CliAdapter::new("echobot"));
 //!
 //! bot.run();
 //! # }
@@ -92,21 +92,19 @@
 //! let ping = handler!("PingHandler", r"ping", |_, _| Some("pong".to_owned()));
 //!
 //! bot.add_addressed_handler(ping);
-//! bot.add_adapter(CliAdapter::new());
+//! bot.add_adapter(CliAdapter::new("pingbot"));
 //!
 //! bot.run();
 //! # }
 //! ```
 //!
 
-#[macro_use]
-extern crate abort_on_panic;
 extern crate regex;
-extern crate hyper;
 extern crate rustc_serialize;
+#[cfg(feature = "slack-adapter")]
 extern crate slack;
+#[cfg(feature = "irc-adapter")]
 extern crate irc;
-extern crate startuppong;
 
 /// Shorthand for creating a `Regex` as suggested by the regex crate. You probably don't need to
 /// `macro_use` this unless you're creating handlers in an external module.
@@ -144,3 +142,7 @@ pub mod message;
 
 mod chatbot;
 pub use chatbot::Chatbot;
+
+pub use handler::HandlerResult;
+pub use handler::MessageHandler;
+pub use message::IncomingMessage;

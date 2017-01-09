@@ -9,17 +9,12 @@ use std::sync::mpsc::SendError;
 use regex::Regex;
 use regex::Captures;
 
-mod githubissue;
-pub use self::githubissue::GithubIssueLinker;
-
-pub mod sup;
-
 use message::IncomingMessage;
 use message::AdapterMsg;
 
 /// Failure modes for a MessageHandler
 #[derive(Debug)]
-enum HandlerError {
+pub enum HandlerError {
     /// Failed to send reply
     Reply(SendError<AdapterMsg>),
     /// Other indicates any mode that's not explicitly part of HandlerError

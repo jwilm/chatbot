@@ -9,17 +9,18 @@ repository = "https://github.com/jwilm/chatbot"
 keywords = ["chat", "bot", "extensible"]
 readme = "README.md"
 
-[[bin]]
-doc = false
-name = "chatbot"
-path = "src/main.rs"
-
 [dependencies]
-abort_on_panic = "1.0.0"
-regex = "~0.1"
-hyper = "~0.5"
-rustc-serialize = "~0.3"
-slack = "~0.6"
-getopts = "~0.2"
-irc = "~0.8"
-startuppong = "~0.1"
+regex = "0.1"
+rustc-serialize = "0.3"
+getopts = "0.2"
+irc = { version = "0.11", optional = true }
+
+[dependencies.slack]
+git = "https://github.com/jwilm/slack-rs"
+rev = "a7390f2524a8e9e886f8b1be2d2a992261f5065b"
+optional = true
+
+[features]
+default = []
+irc-adapter = ["irc"]
+slack-adapter = ["slack"]

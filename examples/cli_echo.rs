@@ -12,7 +12,7 @@ fn main() {
     });
 
     bot.add_handler(echo);
-    bot.add_adapter(CliAdapter::new());
+    bot.add_adapter(CliAdapter::new("bot"));
 
     bot.run();
 }

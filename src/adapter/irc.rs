@@ -1,9 +1,6 @@
-extern crate irc;
-
-use std::sync::Arc;
 use std::thread;
 
-pub type IrcConfig = irc::client::data::Config;
+pub type IrcConfig = ::irc::client::data::Config;
 
 use irc::client::data::Command;
 use irc::client::server::IrcServer;
@@ -13,7 +10,8 @@ use irc::client::server::utils::ServerExt;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 
-use chatbot::Chatbot;
+use regex::Regex;
+
 use adapter::ChatAdapter;
 use message::IncomingMessage;
 use message::AdapterMsg;
@@ -36,18 +34,22 @@ use message::AdapterMsg;
 ///     server: Some(format!("irc.mozilla.org")),
 ///     channels: Some(vec![format!("#chatbot")]),
 ///     .. Default::default()
-/// });
+/// }, name);
 ///
 /// bot.add_adapter(irc);
 /// ```
 pub struct IrcAdapter {
-    config: IrcConfig
+    config: IrcConfig,
+    address_regex: Regex,
+    name: String,
 }
 
 impl IrcAdapter {
-    pub fn new(config: IrcConfig) -> IrcAdapter {
+    pub fn new(config: IrcConfig, bot_name: &str) -> IrcAdapter {
         IrcAdapter {
-            config: config
+            config: config,
+            address_regex: Regex::new(format!(r"^{}:", bot_name).as_str()).unwrap(),
+            name: bot_name.to_owned(),
         }
     }
 }
@@ -57,79 +59,77 @@ impl ChatAdapter for IrcAdapter {
         "IrcAdapter"
     }
 
-    fn process_events(&self, bot: &Chatbot, tx_incoming: Sender<IncomingMessage>) {
-        let server = Arc::new(IrcServer::from_config(self.config.clone()).unwrap());
+    fn addresser(&self) -> &Regex {
+        &self.address_regex
+    }
+
+    fn process_events(&mut self, tx_incoming: Sender<IncomingMessage>) {
+        let server = IrcServer::from_config(self.config.clone()).unwrap();
         server.identify().unwrap();
 
         let (tx_outgoing, rx_outgoing) = channel();
-        let name = bot.get_name().to_owned();
+        let name = self.name.clone();
 
         {
             let server = server.clone();
             thread::Builder::new().name("IrcAdapter Incoming".to_owned()).spawn(move || {
-                abort_on_panic!("IrcAdapter Incoming aborting", {
-                    for message in server.iter() {
-                        if message.is_err() {
-                            continue;
-                        }
-
-                        let msg = message.unwrap();
-
-                        let user = msg.get_source_nickname().map(|user| user.to_owned());
-                        if let Ok(command) = Command::from_message(&msg) {
-                            match command {
-                                Command::PRIVMSG(ref chan, ref msg) => {
-                                    let incoming = IncomingMessage::new("IrcAdapter".to_owned(),
-                                        Some(server.config().server().to_owned()),
-                                        Some(chan.to_owned()), user, msg.to_owned(),
-                                        tx_outgoing.clone());
-
-                                    tx_incoming.send(incoming)
-                                        .ok().expect("chatbot not receiving messages");
-                                },
-                                _ => ()
-                            }
-                        }
+                for message in server.iter() {
+                    if message.is_err() {
+                        continue;
                     }
-                });
+
+                    let msg = message.unwrap();
+
+                    let user = msg.source_nickname().map(|user| user.to_owned());
+                    match msg.command {
+                        Command::PRIVMSG(ref chan, ref msg) => {
+                            let incoming = IncomingMessage::new("IrcAdapter".to_owned(),
+                                Some(server.config().server().to_owned()),
+                                Some(chan.to_owned()), user, msg.to_owned(),
+                                tx_outgoing.clone());
+
+                            tx_incoming.send(incoming)
+                                .ok().expect("chatbot not receiving messages");
+                        },
+                        _ => ()
+                    }
+                }
             }).ok().expect("failed to create incoming thread for IrcAdapter");
         }
 
         thread::Builder::new().name("IrcAdapter Outgoing".to_owned()).spawn(move || {
-            abort_on_panic!("IrcAdapter Outgoing aborting", {
-                loop {
-                    match rx_outgoing.recv() {
-                        Ok(msg) => {
-                            match msg {
-                                AdapterMsg::Outgoing(m) => {
-                                    let incoming = m.get_incoming();
-                                    let chan = incoming.channel().unwrap();
-                                    let user = incoming.user().unwrap();
+            loop {
+                match rx_outgoing.recv() {
+                    Ok(msg) => {
+                        match msg {
+                            AdapterMsg::Outgoing(m) => {
+                                let incoming = m.get_incoming();
+                                let chan = incoming.channel().unwrap();
+                                let user = incoming.user().unwrap();
 
-                                    if &name[..] == chan {
-                                        server.send_privmsg(user, m.as_ref()).unwrap()
-                                    } else {
-                                        server.send_privmsg(chan, m.as_ref()).unwrap()
-                                    };
-
-                                }
-                                AdapterMsg::Private(m) => {
-                                    let incoming = m.get_incoming();
-                                    let user = incoming.user().unwrap();
+                                if &name[..] == chan {
                                     server.send_privmsg(user, m.as_ref()).unwrap()
-                                }
-                                AdapterMsg::Shutdown => {
-                                    break
-                                }
+                                } else {
+                                    server.send_privmsg(chan, m.as_ref()).unwrap()
+                                };
+
                             }
-                        },
-                        Err(e) => {
-                            println!("error receiving outgoing messages: {}", e);
-                            break
+                            AdapterMsg::Private(m) => {
+                                let incoming = m.get_incoming();
+                                let user = incoming.user().unwrap();
+                                server.send_privmsg(user, m.as_ref()).unwrap()
+                            }
+                            AdapterMsg::Shutdown => {
+                                break
+                            }
                         }
+                    },
+                    Err(e) => {
+                        println!("error receiving outgoing messages: {}", e);
+                        break
                     }
                 }
-            });
+            }
         }).ok().expect("failed to create outgoing thread for IrcAdapter");
     }
 }
