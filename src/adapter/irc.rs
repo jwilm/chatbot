@@ -2,7 +2,7 @@ use std::thread;
 
 pub type IrcConfig = ::irc::client::data::Config;
 
-use irc::client::data::Command;
+use irc::proto::command::Command;
 use irc::client::server::IrcServer;
 use irc::client::server::Server;
 use irc::client::server::utils::ServerExt;
@@ -73,15 +73,9 @@ impl ChatAdapter for IrcAdapter {
         {
             let server = server.clone();
             thread::Builder::new().name("IrcAdapter Incoming".to_owned()).spawn(move || {
-                for message in server.iter() {
-                    if message.is_err() {
-                        continue;
-                    }
-
-                    let msg = message.unwrap();
-
-                    let user = msg.source_nickname().map(|user| user.to_owned());
-                    match msg.command {
+                server.for_each_incoming(|message| {
+                    let user = message.source_nickname().map(|user| user.to_owned());
+                    match message.command {
                         Command::PRIVMSG(ref chan, ref msg) => {
                             let incoming = IncomingMessage::new("IrcAdapter".to_owned(),
                                 Some(server.config().server().to_owned()),
@@ -93,7 +87,7 @@ impl ChatAdapter for IrcAdapter {
                         },
                         _ => ()
                     }
-                }
+                }).expect("error processing IrcServer::for_each_incoming");
             }).ok().expect("failed to create incoming thread for IrcAdapter");
         }
 
