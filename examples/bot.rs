@@ -28,7 +28,7 @@ fn main() {
 
     // Add adapter based on command line argument
     match adapter_name.as_ref() {
-        "slack" => bot.add_adapter(SlackAdapter::new()),
+        "slack" => bot.add_adapter(SlackAdapter::new(name)),
         "cli" => bot.add_adapter(CliAdapter::new(name)),
         "irc" => {
             let config = chatbot::adapter::IrcConfig {
