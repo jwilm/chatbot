@@ -13,12 +13,8 @@ readme = "README.md"
 regex = "0.1"
 rustc-serialize = "0.3"
 getopts = "0.2"
-irc = { version = "0.11", optional = true }
-
-[dependencies.slack]
-git = "https://github.com/jwilm/slack-rs"
-rev = "a7390f2524a8e9e886f8b1be2d2a992261f5065b"
-optional = true
+irc = { version = "0.12", optional = true }
+slack = { version = "0.18.0", optional = true }
 
 [features]
 default = []
