@@ -9,6 +9,9 @@ repository = "https://github.com/jwilm/chatbot"
 keywords = ["chat", "bot", "extensible"]
 readme = "README.md"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 regex = "0.1"
 rustc-serialize = "0.3"
