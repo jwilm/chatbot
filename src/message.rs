@@ -39,7 +39,7 @@ impl OutgoingMessage {
     }
 
     /// Return a reference to the
-    /// [`IncomingMessage`](message/struct.IncomingMessage.html) that this
+    /// [`IncomingMessage`](struct.IncomingMessage.html) that this
     /// message is in response to.
     pub fn get_incoming<'a>(&'a self) -> &'a IncomingMessage {
         &self.incoming
@@ -60,9 +60,9 @@ impl OutgoingMessage {
 /// properties on this struct exist to help adapters route any `OutgoingMessage`
 /// back to where the IncomingMessage originated.
 ///
-/// Types implementing the [`MessageHandler`](handler/trait.MessageHandler.html)
+/// Types implementing the [`MessageHandler`](../handler/trait.MessageHandler.html)
 /// trait should use IncomingMessage.reply to respond. It is up to the
-/// [`ChatAdapter`](adapter/trait.ChatAdapter.html) to decide what
+/// [`ChatAdapter`](../adapter/trait.ChatAdapter.html) to decide what
 /// [`reply`](#method.reply) means in the context of the service it provides.
 #[derive(Clone)]
 pub struct IncomingMessage {

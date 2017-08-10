@@ -47,8 +47,7 @@ and clone it locally. You should be able to just do `cargo run` and get a
 working ping and github handler on the command line. If you want to run the test
 program using the Slack adapter, do `cargo run -- --adapter slack`.
 
-[service adapters]: http://chatbot.rs/chatbot/adapter/trait.ChatAdapter.html#implementors
-[message handlers]: http://chatbot.rs/chatbot/handler/trait.MessageHandler.html#implementors
-[documentation]: http://chatbot.rs/chatbot/
+[service adapters]: https://docs.rs/chatbot/*/chatbot/adapter/trait.ChatAdapter.html#implementors
+[message handlers]: https://docs.rs/chatbot/*/chatbot/handler/trait.MessageHandler.html#implementors
+[documentation]: https://docs.rs/chatbot
 [issue tracker]: https://github.com/jwilm/chatbot/issues
-[mio]: https://github.com/carllerche/mio
