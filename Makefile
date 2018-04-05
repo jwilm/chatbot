@@ -1,7 +1,7 @@
+.PHONY: test
 test:
 	cargo test --features 'slack-adapter irc-adapter'
 
+.PHONY: docs
 docs:
-	@cargo doc --no-deps
-
-.PHONY: test docs
+	cargo doc --features 'slack-adapter irc-adapter' --no-deps
